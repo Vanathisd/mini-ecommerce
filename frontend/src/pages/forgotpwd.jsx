@@ -226,7 +226,7 @@ function ForgotPassword() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/auth/reset-password",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/auth/reset-password",
                     {
                         method: "POST",
 

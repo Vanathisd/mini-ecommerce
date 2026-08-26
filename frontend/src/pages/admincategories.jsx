@@ -74,7 +74,7 @@ function AdminCategories() {
 
                 const response =
                     await fetch(
-                        `http://localhost:5000/products/admin/all?t=${Date.now()}`,
+                        `https://mini-ecommerce-backend-yxii.onrender.com/products/admin/all?t=${Date.now()}`,
                         {
                             method: "GET",
 

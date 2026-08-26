@@ -151,7 +151,7 @@ function ProductDetails() {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5000/products"
+                    "https://mini-ecommerce-backend-yxii.onrender.com/products"
                 );
 
 
@@ -356,7 +356,7 @@ function ProductDetails() {
         ) {
 
             return (
-                `http://localhost:5000${image}`
+                `https://mini-ecommerce-backend-yxii.onrender.com${image}`
             );
 
         }
@@ -461,7 +461,7 @@ function ProductDetails() {
             const response =
                 await fetch(
 
-                    `http://localhost:5000/products/${product._id}/rating`,
+                    `https://mini-ecommerce-backend-yxii.onrender.com/products/${product._id}/rating`,
 
                     {
                         method: "PUT",

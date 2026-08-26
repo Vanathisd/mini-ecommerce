@@ -228,7 +228,7 @@ function Login() {
         try {
 
             const response = await fetch(
-                "http://localhost:5000/auth/login",
+                "https://mini-ecommerce-backend-yxii.onrender.com/auth/login",
                 {
                     method: "POST",
 

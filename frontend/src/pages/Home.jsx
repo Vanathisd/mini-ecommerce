@@ -1,6 +1,6 @@
 
 import Hero from "../components/Hero";
-import Categories from "../components/Categories";
+import Categories from "../components/categories";
 import FeaturedProducts from "../components/featuredproducts";
 import OfferCarousel from "../components/offer-carousel";
 import WhyVelora from "../components/whyvelora";

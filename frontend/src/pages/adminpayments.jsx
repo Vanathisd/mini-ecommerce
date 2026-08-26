@@ -34,7 +34,7 @@ function AdminPayments() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/orders/admin/all",
+                        "https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/all",
                         {
                             method: "GET",
 

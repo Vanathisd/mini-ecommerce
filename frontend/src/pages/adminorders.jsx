@@ -21,7 +21,7 @@ function AdminOrders() {
                 const token = localStorage.getItem("token");
 
                 const response = await fetch(
-                    "http://localhost:5000/orders/admin/all",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/all",
                     {
                         method: "GET",
                         headers: {
@@ -72,7 +72,7 @@ function AdminOrders() {
                 localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:5000/orders/admin/${orderId}/status`,
+                `https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/${orderId}/status`,
                 {
                     method: "PATCH",
 

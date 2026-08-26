@@ -777,7 +777,7 @@ function Checkout() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/orders/create",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/orders/create",
                     {
 
                         method: "POST",
@@ -1594,7 +1594,7 @@ function Checkout() {
                                         item.image?.startsWith(
                                             "/uploads"
                                         )
-                                            ? `http://localhost:5000${item.image}`
+                                            ? `https://mini-ecommerce-backend-yxii.onrender.com${item.image}`
                                             : item.image
                                     }
                                     alt={item.name}

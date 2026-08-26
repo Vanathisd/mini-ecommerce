@@ -131,7 +131,7 @@ function AdminProducts() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/products/admin/all",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/products/admin/all",
                     {
                         headers: {
                             Authorization:
@@ -450,7 +450,7 @@ function AdminProducts() {
 
                 const response =
                     await fetch(
-                        `http://localhost:5000/products/${editingProductId}`,
+                        `https://mini-ecommerce-backend-yxii.onrender.com/products/${editingProductId}`,
                         {
                             method: "PUT",
 
@@ -512,7 +512,7 @@ function AdminProducts() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/products",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/products",
                     {
                         method: "POST",
 
@@ -613,7 +613,7 @@ function AdminProducts() {
 
             const response =
                 await fetch(
-                    `http://localhost:5000/products/${productId}/soft-delete`,
+                    `https://mini-ecommerce-backend-yxii.onrender.com/products/${productId}/soft-delete`,
                     {
                         method: "PATCH",
 
@@ -705,7 +705,7 @@ function AdminProducts() {
 
             const response =
                 await fetch(
-                    `http://localhost:5000/products/${productId}/restore`,
+                    `https://mini-ecommerce-backend-yxii.onrender.com/products/${productId}/restore`,
                     {
                         method: "PATCH",
 
@@ -811,7 +811,7 @@ function AdminProducts() {
 
             const response =
                 await fetch(
-                    `http://localhost:5000/products/${productId}`,
+                    `https://mini-ecommerce-backend-yxii.onrender.com/products/${productId}`,
                     {
                         method: "DELETE",
 
@@ -936,7 +936,7 @@ function AdminProducts() {
                                     item.image.startsWith(
                                         "/uploads"
                                     )
-                                        ? `http://localhost:5000${item.image}`
+                                        ? `https://mini-ecommerce-backend-yxii.onrender.com${item.image}`
                                         : item.image
                                 }
                                 alt={item.name}

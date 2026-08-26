@@ -88,7 +88,7 @@ function AdminSettings() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/user/admin/profile",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/user/admin/profile",
                     {
                         method: "PUT",
 
@@ -198,7 +198,7 @@ function AdminSettings() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/user/admin/change-password",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/user/admin/change-password",
                     {
                         method: "PUT",
 

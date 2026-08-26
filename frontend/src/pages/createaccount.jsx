@@ -546,7 +546,7 @@ function CreateAccount() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/auth/register",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/auth/register",
                     {
                         method: "POST",
 

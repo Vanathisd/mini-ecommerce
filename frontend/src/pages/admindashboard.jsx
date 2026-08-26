@@ -45,7 +45,7 @@ function AdminDashboard() {
                 // FETCH USERS
                 const usersResponse =
                     await fetch(
-                        "http://localhost:5000/user/admin/all",
+                        "https://mini-ecommerce-backend-yxii.onrender.com/user/admin/all",
                         {
                             method: "GET",
 
@@ -79,7 +79,7 @@ function AdminDashboard() {
                 // FETCH PRODUCTS
                 const productsResponse =
                     await fetch(
-                        "http://localhost:5000/products"
+                        "https://mini-ecommerce-backend-yxii.onrender.com/products"
                     );
 
 
@@ -105,7 +105,7 @@ function AdminDashboard() {
                 // FETCH ORDERS
                 const ordersResponse =
                     await fetch(
-                        "http://localhost:5000/orders/admin/all",
+                        "https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/all",
                         {
                             method: "GET",
 

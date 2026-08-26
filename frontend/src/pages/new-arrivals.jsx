@@ -39,7 +39,7 @@ function NewArrivals() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/products/new-arrivals"
+                        "https://mini-ecommerce-backend-yxii.onrender.com/products/new-arrivals"
                     );
 
 
@@ -217,13 +217,12 @@ function NewArrivals() {
                                     <img
                                         src={
                                             product.image &&
-                                            product.image.startsWith(
-                                                "/uploads"
-                                            )
-                                                ? `http://localhost:5000${product.image}`
+                                            product.image.startsWith("/uploads")
+                                                ? `https://mini-ecommerce-backend-yxii.onrender.com${product.image}`
                                                 : product.image
                                         }
                                         alt={product.name}
+                                        onError={() => console.log("IMAGE FAILED:", product.image)}
                                     />
 
 

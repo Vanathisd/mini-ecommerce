@@ -44,7 +44,7 @@ function MyOrders() {
 
 
                 const response = await fetch(
-                    "http://localhost:5000/orders/myorders",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/orders/myorders",
                     {
                         method: "GET",
 
@@ -109,7 +109,7 @@ const handleCancelOrder = async () => {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-            `http://localhost:5000/orders/${selectedOrderId}/cancel`,
+            `https://mini-ecommerce-backend-yxii.onrender.com/orders/${selectedOrderId}/cancel`,
             {
                 method: "PATCH",
 

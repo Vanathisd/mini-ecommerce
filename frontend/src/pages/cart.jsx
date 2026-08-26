@@ -144,7 +144,7 @@ function Cart() {
                                         item.image?.startsWith(
                                             "/uploads"
                                         )
-                                            ? `http://localhost:5000${item.image}`
+                                            ? `https://mini-ecommerce-backend-yxii.onrender.com${item.image}`
                                             : item.image
                                     }
                                     alt={item.name}

@@ -40,7 +40,7 @@ function AdminAnalytics() {
 
                 const ordersResponse =
                     await fetch(
-                        "http://localhost:5000/orders/admin/all",
+                        "https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/all",
                         {
                             method: "GET",
 
@@ -75,7 +75,7 @@ function AdminAnalytics() {
 
                 const productsResponse =
                     await fetch(
-                        "http://localhost:5000/products"
+                        "https://mini-ecommerce-backend-yxii.onrender.com/products"
                     );
 
 

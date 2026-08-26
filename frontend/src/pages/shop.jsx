@@ -72,7 +72,7 @@ function Shop() {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5000/products"
+                    "https://mini-ecommerce-backend-yxii.onrender.com/products"
                 );
 
                 const data =
@@ -171,7 +171,7 @@ function Shop() {
 
         if (image.startsWith("/uploads")) {
 
-            return `http://localhost:5000${image}`;
+            return `https://mini-ecommerce-backend-yxii.onrender.com${image}`;
 
         }
 

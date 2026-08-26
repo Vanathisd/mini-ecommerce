@@ -40,7 +40,7 @@ function AdminUsers() {
 
 
                 const response = await fetch(
-                    "http://localhost:5000/user/admin/all",
+                    "https://mini-ecommerce-backend-yxii.onrender.com/user/admin/all",
                     {
                         method: "GET",
 
@@ -161,7 +161,7 @@ function AdminUsers() {
 
 
             const response = await fetch(
-                `http://localhost:5000/user/admin/${userId}/soft-delete`,
+                `https://mini-ecommerce-backend-yxii.onrender.com/user/admin/${userId}/soft-delete`,
                 {
                     method: "PATCH",
 
@@ -232,7 +232,7 @@ function AdminUsers() {
 
 
             const response = await fetch(
-                `http://localhost:5000/user/admin/${userId}/restore`,
+                `https://mini-ecommerce-backend-yxii.onrender.com/user/admin/${userId}/restore`,
                 {
                     method: "PATCH",
 
@@ -315,7 +315,7 @@ function AdminUsers() {
 
 
                 const response = await fetch(
-                    `http://localhost:5000/user/admin/${userId}/permanent`,
+                    `https://mini-ecommerce-backend-yxii.onrender.com/user/admin/${userId}/permanent`,
                     {
                         method: "DELETE",
 
