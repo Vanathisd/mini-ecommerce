@@ -1,0 +1,422 @@
+.admin-settings-page {
+    min-height: 100vh;
+    padding: 40px;
+    background: #faf8f5;
+}
+
+
+.admin-settings-heading {
+    margin-bottom: 35px;
+}
+
+
+.admin-settings-heading > button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    border: none;
+    background: transparent;
+
+    font-size: 14px;
+    cursor: pointer;
+
+    margin-bottom: 25px;
+}
+
+
+.admin-settings-heading p {
+    margin: 0 0 6px;
+
+    font-size: 12px;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+
+.admin-settings-heading h1 {
+    margin: 0;
+
+    font-size: 32px;
+}
+
+
+.admin-settings-layout {
+    max-width: 900px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 25px;
+}
+
+
+.admin-settings-card {
+    background: white;
+
+    border: 1px solid #eee6df;
+    border-radius: 14px;
+
+    padding: 28px;
+}
+
+
+.admin-settings-card-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    padding-bottom: 22px;
+
+    border-bottom: 1px solid #eee6df;
+
+    margin-bottom: 24px;
+}
+
+
+.admin-settings-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #fff3e8;
+
+    font-size: 21px;
+}
+
+
+.admin-settings-card-heading p {
+    margin: 0 0 4px;
+
+    font-size: 10px;
+    letter-spacing: 1.5px;
+
+    color: #888;
+}
+
+
+.admin-settings-card-heading h2 {
+    margin: 0;
+
+    font-size: 20px;
+}
+
+
+.admin-settings-form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+}
+
+
+.admin-settings-field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+.admin-settings-field label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+.admin-settings-field input {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 12px 14px;
+
+    border: 1px solid #ddd4cc;
+    border-radius: 8px;
+
+    font-size: 14px;
+
+    outline: none;
+
+    background: white;
+}
+
+
+.admin-settings-field input:focus {
+    border-color: #b8a99a;
+}
+
+
+.admin-settings-field input:read-only {
+    background: #f7f5f2;
+    color: #777;
+
+    cursor: not-allowed;
+}
+
+
+.admin-settings-field small {
+    font-size: 11px;
+    color: #999;
+}
+
+
+.admin-settings-save-btn {
+    width: fit-content;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 11px 18px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #222;
+    color: white;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+.admin-settings-save-btn:hover {
+    opacity: 0.9;
+}
+
+
+.admin-settings-success {
+    margin: 0;
+
+    padding: 10px 13px;
+
+    background: #eef8f0;
+
+    border: 1px solid #cce8d0;
+
+    border-radius: 7px;
+
+    color: #287a38;
+
+    font-size: 13px;
+}
+
+
+.admin-settings-error {
+    max-width: 900px;
+
+    box-sizing: border-box;
+
+    padding: 12px 15px;
+
+    margin-bottom: 20px;
+
+    background: #fff1f1;
+
+    border: 1px solid #f0cccc;
+
+    border-radius: 8px;
+
+    color: #c0392b;
+
+    font-size: 14px;
+}
+
+
+.admin-store-info {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 15px;
+}
+
+
+.admin-store-info > div {
+    padding: 16px;
+
+    background: #faf8f5;
+
+    border-radius: 9px;
+}
+
+
+.admin-store-info span {
+    display: block;
+
+    margin-bottom: 6px;
+
+    font-size: 11px;
+
+    color: #888;
+
+    letter-spacing: 0.5px;
+}
+
+
+.admin-store-info strong {
+    display: block;
+
+    font-size: 14px;
+}
+
+
+.admin-danger-card {
+    border-color: #eee0dc;
+}
+
+
+.admin-logout-text {
+    margin: 0 0 18px;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    color: #777;
+}
+
+
+.admin-settings-logout-btn {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 11px 18px;
+
+    border: 1px solid #e2bdb8;
+
+    border-radius: 8px;
+
+    background: #fff7f6;
+
+    color: #b33a30;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+.admin-settings-logout-btn:hover {
+    background: #fff0ee;
+}
+
+
+@media (max-width: 700px) {
+
+    .admin-settings-page {
+        padding: 25px 15px;
+    }
+
+
+    .admin-settings-card {
+        padding: 20px;
+    }
+
+
+    .admin-store-info {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+.admin-settings-page {
+    min-height: 100vh;
+    padding: 35px 50px;
+    background: #fffaf5;
+    color: #2d2926;
+}
+
+.admin-settings-heading > button {
+    color: #6b625d;
+}
+
+.admin-settings-heading > button:hover {
+    color: #2d2926;
+}
+
+.admin-settings-heading p,
+.admin-settings-card-heading p {
+    color: #a28d7d;
+}
+
+.admin-settings-card {
+    background: #ffffff;
+    border-color: #e8dfd8;
+}
+
+.admin-settings-card-heading {
+    border-bottom-color: #e8dfd8;
+}
+
+.admin-settings-icon {
+    background: #eee5dd;
+    color: #6f5c4d;
+}
+
+.admin-settings-field input {
+    background: #ffffff;
+    border-color: #e5ddd6;
+    color: #2d2926;
+}
+
+.admin-settings-field input:focus {
+    border-color: #8f7562;
+    box-shadow: 0 0 0 3px rgba(143, 117, 98, 0.10);
+}
+
+.admin-settings-field input:read-only {
+    background: #f8f3ee;
+    color: #77706b;
+}
+
+.admin-settings-save-btn {
+    background: #8f7562;
+    color: #ffffff;
+}
+
+.admin-settings-save-btn:hover {
+    background: #765e4e;
+}
+
+.admin-store-info > div {
+    background: #f8f3ee;
+}
+
+.admin-store-info span,
+.admin-logout-text {
+    color: #77706b;
+}
+
+.admin-settings-success {
+    background: #edf6ee;
+    border-color: #d5e7d8;
+    color: #4c7954;
+}
+
+.admin-settings-error {
+    background: #fff1f1;
+    border-color: #f0cccc;
+    color: #c0392b;
+}
+
+.admin-settings-logout-btn {
+    background: #fff1f1;
+    border-color: #e8caca;
+    color: #c43f3f;
+}
+
+.admin-settings-logout-btn:hover {
+    background: #f9dada;
+}
