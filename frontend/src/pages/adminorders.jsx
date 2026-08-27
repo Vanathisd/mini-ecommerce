@@ -274,7 +274,11 @@ function AdminOrders() {
                                         >
 
                                             <img
-                                                src={product.image}
+                                                src={
+                                                    product.image?.startsWith("/uploads")
+                                                        ? `https://mini-ecommerce-backend-yxii.onrender.com${product.image}`
+                                                        : product.image
+                                                }
                                                 alt={product.name}
                                             />
 
