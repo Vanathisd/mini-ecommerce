@@ -1,13 +1,16 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require("./routes/authroutes");
 const userRoutes = require("./routes/userroutes");
 const orderRoutes = require("./routes/orderroutes");
 const productRoutes = require("./routes/productroutes");
+const aiRoutes = require("./routes/airoutes");
 const path = require("path");
-dotenv.config();
+
 
 const app = express();
 
@@ -18,6 +21,8 @@ app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/orders", orderRoutes);
 app.use("/products", productRoutes);
+app.use("/ai", aiRoutes);
+
 
 
 mongoose
