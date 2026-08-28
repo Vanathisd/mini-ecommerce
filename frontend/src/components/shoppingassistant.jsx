@@ -16,7 +16,7 @@ function ShoppingAssistant() {
             setResponse("");
 
             const res = await fetch(
-                "http://localhost:5000/ai/chat",
+                "https://mini-ecommerce-backend-yxii.onrender.com/ai/chat",
                 {
                     method: "POST",
                     headers: {
