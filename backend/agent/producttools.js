@@ -2,7 +2,7 @@ const Product = require("../models/product");
 
 
 
-function escapeRegExp(string) {
+function escapeRegex(text) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
