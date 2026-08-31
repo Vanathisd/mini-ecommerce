@@ -557,6 +557,10 @@ async function getProductDetails(productName) {
 // FIND PRODUCT FROM USER MESSAGE
 // ======================================================
 
+// ======================================================
+// FIND SPECIFIC PRODUCT FROM USER MESSAGE
+// ======================================================
+
 async function findProductFromMessage(message) {
 
     try {
@@ -565,61 +569,155 @@ async function findProductFromMessage(message) {
             return null;
         }
 
-        const cleanMessage =
-            String(message)
-                .trim();
+        const originalMessage =
+            String(message).trim();
+
+        if (!originalMessage) {
+            return null;
+        }
 
         console.log(
             "Trying to detect product from message:",
-            cleanMessage
+            originalMessage
         );
 
 
-        // ================================================
-        // REMOVE QUESTION WORDS
-        // ================================================
+        // ==================================================
+        // CREATE POSSIBLE PRODUCT NAME
+        // ==================================================
 
         let productText =
-            cleanMessage
-
-                .replace(
-                    /\b(what\s+is\s+the\s+price|what\s+is\s+price|what's\s+the\s+price|what\s+is\s+the\s+cost|what's\s+the\s+cost|price\s+of|cost\s+of|how\s+much|how\s+many|tell\s+me\s+about|give\s+me\s+details|give\s+details|show\s+me\s+details|show\s+details|description\s+of|what\s+category|what\s+subcategory|describe|description|available|availability|in\s+stock|stock\s+of|stock)\b/gi,
-
-                    " "
-                )
-
-                .replace(
-                    /[?!.]/g,
-                    " "
-                )
-
-                .replace(
-                    /\s+/g,
-                    " "
-                )
-
-                .trim();
+            originalMessage;
 
 
-        // ================================================
-        // REMOVE "IS" AND "ARE" ONLY WHEN THEY ARE
-        // STANDALONE WORDS
-        // ================================================
-
+        // Remove common question phrases.
+        // Case-insensitive because of /gi.
         productText =
             productText
                 .replace(
-                    /^(is|are)\s+/i,
-                    ""
+                    /\bwhat\s+is\s+the\s+price\s+of\b/gi,
+                    " "
                 )
+                .replace(
+                    /\bwhat\s+is\s+price\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat's\s+the\s+price\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat\s+is\s+the\s+cost\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat's\s+the\s+cost\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bprice\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bcost\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bhow\s+much\s+is\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bhow\s+much\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bhow\s+many\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat\s+is\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat's\b/gi,
+                    " "
+                )
+                .replace(
+                    /\btell\s+me\s+about\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bgive\s+me\s+details\s+about\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bgive\s+me\s+details\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bshow\s+me\s+details\s+about\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bshow\s+me\s+details\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bdescription\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bdescribe\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat\s+category\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bwhat\s+subcategory\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bis\s+available\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bis\s+it\s+available\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bis\s+it\s+in\s+stock\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bavailable\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bavailability\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bin\s+stock\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bstock\s+of\b/gi,
+                    " "
+                )
+                .replace(
+                    /\bstock\b/gi,
+                    " "
+                );
+
+
+        // Remove punctuation
+        productText =
+            productText
+                .replace(/[?!.:,]/g, " ")
+                .replace(/\s+/g, " ")
                 .trim();
-
-
-        if (!productText) {
-
-            return null;
-
-        }
 
 
         console.log(
@@ -628,9 +726,14 @@ async function findProductFromMessage(message) {
         );
 
 
-        // ================================================
-        // SEARCH DATABASE
-        // ================================================
+        if (!productText) {
+            return null;
+        }
+
+
+        // ==================================================
+        // EXACT / PARTIAL / FLEXIBLE SEARCH
+        // ==================================================
 
         const product =
             await getProductDetails(
@@ -638,15 +741,91 @@ async function findProductFromMessage(message) {
             );
 
 
+        if (product) {
+
+            console.log(
+                "Specific product detected:",
+                product.name
+            );
+
+            return product;
+
+        }
+
+
+        // ==================================================
+        // FALLBACK:
+        // SEARCH PRODUCTS USING ALL WORDS
+        // ==================================================
+
+        const words =
+            productText
+                .split(/\s+/)
+                .filter(Boolean);
+
+
+        if (words.length === 0) {
+            return null;
+        }
+
+
+        const wordConditions =
+            words.map(word => ({
+                name: {
+                    $regex: escapeRegex(word),
+                    $options: "i"
+                }
+            }));
+
+
+        const fallbackProduct =
+            await Product.findOne({
+
+                $and: [
+
+                    {
+                        $or: [
+                            {
+                                isDeleted: false
+                            },
+                            {
+                                isDeleted: {
+                                    $exists: false
+                                }
+                            }
+                        ]
+                    },
+
+                    {
+                        $and: wordConditions
+                    }
+
+                ]
+
+            })
+            .sort({
+                createdAt: -1,
+                _id: -1
+            });
+
+
+        if (fallbackProduct) {
+
+            console.log(
+                "Fallback product detected:",
+                fallbackProduct.name
+            );
+
+            return fallbackProduct;
+
+        }
+
+
         console.log(
-            "Detected product:",
-            product
-                ? product.name
-                : "NONE"
+            "No specific product detected."
         );
 
-
-        return product;
+        return null;
 
 
     } catch (error) {
