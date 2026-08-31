@@ -18,7 +18,6 @@ function Home() {
             <OfferCarousel />
             <WhyVelora />
             <FinalCTA />
-            <Chatbot />
         </div>
     );
 }
