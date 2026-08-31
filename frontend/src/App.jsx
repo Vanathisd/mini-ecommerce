@@ -28,6 +28,7 @@ import AdminSettings from "./pages/adminsettings";
 import PrivacyPolicy from "./pages/privacypolicy";
 import Terms from "./pages/terms";
 import ForgotPassword from "./pages/forgotpwd";
+import Assistant from "./pages/assistant";
 
 
 
@@ -76,6 +77,7 @@ function AppContent() {
                 <Route path="/privacypolicy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/forgotpwd" element={<ForgotPassword />} />
+                <Route path="/assistant" element={<Assistant />} />
 
                 {/* ADMIN ROUTES */}
                 <Route

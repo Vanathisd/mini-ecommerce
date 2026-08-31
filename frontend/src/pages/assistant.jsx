@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { FaComments, FaTimes, FaPaperPlane } from "react-icons/fa";
+import "../styles/assistant.css";
+
 
 function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
