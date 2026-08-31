@@ -3,7 +3,7 @@ import { FaComments, FaTimes, FaPaperPlane } from "react-icons/fa";
 import "../styles/assistant.css";
 
 
-function Chatbot() {
+function Assistant() {
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([
@@ -154,4 +154,4 @@ function Chatbot() {
     );
 }
 
-export default Chatbot;
+export default Assistant;
