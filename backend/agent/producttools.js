@@ -23,19 +23,30 @@ async function searchProducts({
             ]
         };
 
-        if (category) {
+        // Category filter
+        if (
+            category !== undefined &&
+            category !== null &&
+            category.trim() !== ""
+        ) {
             query.$and.push({
-                category: new RegExp(`^${category}$`, "i")
+                category: new RegExp(`^${category.trim()}$`, "i")
             });
         }
 
-        if (subcategory) {
+        // Subcategory filter
+        if (
+            subcategory !== undefined &&
+            subcategory !== null &&
+            subcategory.trim() !== ""
+        ) {
             query.$and.push({
-                subcategory: new RegExp(`^${subcategory}$`, "i")
+                subcategory: new RegExp(`^${subcategory.trim()}$`, "i")
             });
         }
 
-        if (minPrice !== undefined) {
+        // Minimum price filter
+        if (minPrice !== undefined && minPrice !== null) {
             query.$and.push({
                 price: {
                     $gte: Number(minPrice)
@@ -43,7 +54,8 @@ async function searchProducts({
             });
         }
 
-        if (maxPrice !== undefined) {
+        // Maximum price filter
+        if (maxPrice !== undefined && maxPrice !== null) {
             query.$and.push({
                 price: {
                     $lte: Number(maxPrice)
@@ -51,11 +63,24 @@ async function searchProducts({
             });
         }
 
-        if (search) {
+        // Keyword search
+        if (
+            search !== undefined &&
+            search !== null &&
+            search.trim() !== ""
+        ) {
+            const escapedSearch = search
+                .trim()
+                .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
             query.$and.push({
                 $or: [
-                    { name: new RegExp(search, "i") },
-                    { description: new RegExp(search, "i") }
+                    {
+                        name: new RegExp(escapedSearch, "i")
+                    },
+                    {
+                        description: new RegExp(escapedSearch, "i")
+                    }
                 ]
             });
         }
@@ -68,6 +93,7 @@ async function searchProducts({
 
         console.log("MongoDB search query:", query);
         console.log("Products found:", products);
+        console.log("Products found count:", products.length);
 
         return products;
 
@@ -78,8 +104,6 @@ async function searchProducts({
 
     }
 }
-
-
 
 module.exports = {
     searchProducts

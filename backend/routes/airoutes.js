@@ -4,7 +4,9 @@ const { askShoppingAgent } = require("../agent/shoppingagent");
 const router = express.Router();
 
 router.post("/chat", async (req, res) => {
+
     try {
+
         const { message } = req.body;
 
         if (!message) {
@@ -20,12 +22,15 @@ router.post("/chat", async (req, res) => {
         });
 
     } catch (error) {
+
         console.error("AI Agent Error:", error);
 
         res.status(500).json({
             message: "Something went wrong with the AI agent"
         });
+
     }
+
 });
 
 module.exports = router;
