@@ -554,10 +554,6 @@ async function getProductDetails(productName) {
 
 
 // ======================================================
-// FIND PRODUCT FROM USER MESSAGE
-// ======================================================
-
-// ======================================================
 // FIND SPECIFIC PRODUCT FROM USER MESSAGE
 // ======================================================
 
@@ -569,150 +565,154 @@ async function findProductFromMessage(message) {
             return null;
         }
 
-        const originalMessage =
-            String(message).trim();
+        const cleanMessage =
+            String(message)
+                .trim();
 
-        if (!originalMessage) {
+        if (!cleanMessage) {
             return null;
         }
 
         console.log(
             "Trying to detect product from message:",
-            originalMessage
+            cleanMessage
         );
 
 
         // ==================================================
-        // CREATE POSSIBLE PRODUCT NAME
+        // STEP 1: REMOVE QUESTION PHRASES
         // ==================================================
 
         let productText =
-            originalMessage;
+            cleanMessage;
 
 
-        // Remove common question phrases.
-        // Case-insensitive because of /gi.
         productText =
             productText
+
+                // price questions
                 .replace(
                     /\bwhat\s+is\s+the\s+price\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bwhat\s+is\s+price\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bwhat's\s+the\s+price\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bwhat\s+is\s+the\s+cost\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bwhat's\s+the\s+cost\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bprice\s+of\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bcost\s+of\b/gi,
                     " "
                 )
-                .replace(
-                    /\bhow\s+much\s+is\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bhow\s+much\b/gi,
-                    " "
-                )
+
+                // stock questions
                 .replace(
                     /\bhow\s+many\b/gi,
                     " "
                 )
-                .replace(
-                    /\bwhat\s+is\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bwhat's\b/gi,
-                    " "
-                )
-                .replace(
-                    /\btell\s+me\s+about\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bgive\s+me\s+details\s+about\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bgive\s+me\s+details\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bshow\s+me\s+details\s+about\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bshow\s+me\s+details\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bdescription\s+of\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bdescribe\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bwhat\s+category\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bwhat\s+subcategory\b/gi,
-                    " "
-                )
+
                 .replace(
                     /\bis\s+available\b/gi,
                     " "
                 )
+
                 .replace(
-                    /\bis\s+it\s+available\b/gi,
+                    /\bare\s+available\b/gi,
                     " "
                 )
+
                 .replace(
-                    /\bis\s+it\s+in\s+stock\b/gi,
+                    /\bavailability\s+of\b/gi,
                     " "
                 )
-                .replace(
-                    /\bavailable\b/gi,
-                    " "
-                )
-                .replace(
-                    /\bavailability\b/gi,
-                    " "
-                )
+
                 .replace(
                     /\bin\s+stock\b/gi,
                     " "
                 )
+
                 .replace(
                     /\bstock\s+of\b/gi,
                     " "
                 )
+
+                // general detail questions
                 .replace(
-                    /\bstock\b/gi,
+                    /\btell\s+me\s+about\b/gi,
                     " "
-                );
+                )
+
+                .replace(
+                    /\bgive\s+me\s+details\s+about\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bgive\s+me\s+details\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bshow\s+me\s+details\s+about\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bshow\s+me\s+details\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bdescription\s+of\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bwhat\s+category\s+is\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bwhat\s+subcategory\s+is\b/gi,
+                    " "
+                )
+
+                // remove common question words
+                .replace(
+                    /\bwhat\s+is\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bwhat's\b/gi,
+                    " ");
 
 
-        // Remove punctuation
+        // ==================================================
+        // STEP 2: REMOVE PUNCTUATION
+        // ==================================================
+
         productText =
             productText
                 .replace(/[?!.:,]/g, " ")
@@ -732,19 +732,36 @@ async function findProductFromMessage(message) {
 
 
         // ==================================================
-        // EXACT / PARTIAL / FLEXIBLE SEARCH
+        // STEP 3: EXACT PRODUCT NAME
         // ==================================================
 
-        const product =
-            await getProductDetails(
-                productText
-            );
+        let product =
+            await Product.findOne({
+
+                name: {
+                    $regex:
+                        `^${escapeRegex(productText)}$`,
+                    $options: "i"
+                },
+
+                $or: [
+                    {
+                        isDeleted: false
+                    },
+                    {
+                        isDeleted: {
+                            $exists: false
+                        }
+                    }
+                ]
+
+            });
 
 
         if (product) {
 
             console.log(
-                "Specific product detected:",
+                "EXACT PRODUCT FOUND:",
                 product.name
             );
 
@@ -754,8 +771,7 @@ async function findProductFromMessage(message) {
 
 
         // ==================================================
-        // FALLBACK:
-        // SEARCH PRODUCTS USING ALL WORDS
+        // STEP 4: ALL WORDS MUST EXIST IN PRODUCT NAME
         // ==================================================
 
         const words =
@@ -764,65 +780,126 @@ async function findProductFromMessage(message) {
                 .filter(Boolean);
 
 
-        if (words.length === 0) {
-            return null;
+        if (words.length > 0) {
+
+            const wordConditions =
+                words.map(word => ({
+
+                    name: {
+                        $regex:
+                            escapeRegex(word),
+                        $options: "i"
+                    }
+
+                }));
+
+
+            product =
+                await Product.findOne({
+
+                    $and: [
+
+                        {
+                            $or: [
+                                {
+                                    isDeleted: false
+                                },
+                                {
+                                    isDeleted: {
+                                        $exists: false
+                                    }
+                                }
+                            ]
+                        },
+
+                        ...wordConditions
+
+                    ]
+
+                })
+
+                .sort({
+
+                    createdAt: -1,
+                    _id: -1
+
+                });
+
+
+            if (product) {
+
+                console.log(
+                    "ALL-WORD PRODUCT FOUND:",
+                    product.name
+                );
+
+                return product;
+
+            }
+
         }
 
 
-        const wordConditions =
-            words.map(word => ({
-                name: {
-                    $regex: escapeRegex(word),
-                    $options: "i"
-                }
-            }));
+        // ==================================================
+        // STEP 5: FLEXIBLE PRODUCT NAME SEARCH
+        // ==================================================
+
+        if (words.length > 0) {
+
+            const wordRegex =
+                words
+                    .map(word =>
+                        escapeRegex(word)
+                    )
+                    .join(".*");
 
 
-        const fallbackProduct =
-            await Product.findOne({
+            product =
+                await Product.findOne({
 
-                $and: [
-
-                    {
-                        $or: [
-                            {
-                                isDeleted: false
-                            },
-                            {
-                                isDeleted: {
-                                    $exists: false
-                                }
-                            }
-                        ]
+                    name: {
+                        $regex:
+                            wordRegex,
+                        $options: "i"
                     },
 
-                    {
-                        $and: wordConditions
-                    }
+                    $or: [
+                        {
+                            isDeleted: false
+                        },
+                        {
+                            isDeleted: {
+                                $exists: false
+                            }
+                        }
+                    ]
 
-                ]
+                })
 
-            })
-            .sort({
-                createdAt: -1,
-                _id: -1
-            });
+                .sort({
+
+                    createdAt: -1,
+                    _id: -1
+
+                });
 
 
-        if (fallbackProduct) {
+            if (product) {
 
-            console.log(
-                "Fallback product detected:",
-                fallbackProduct.name
-            );
+                console.log(
+                    "FLEXIBLE PRODUCT FOUND:",
+                    product.name
+                );
 
-            return fallbackProduct;
+                return product;
+
+            }
 
         }
 
 
         console.log(
-            "No specific product detected."
+            "NO SPECIFIC PRODUCT FOUND"
         );
 
         return null;
@@ -841,9 +918,6 @@ async function findProductFromMessage(message) {
 
 }
 
-// ======================================================
-// EXPORT
-// ======================================================
 
 module.exports = {
 
