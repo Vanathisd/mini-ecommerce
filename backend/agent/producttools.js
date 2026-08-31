@@ -1,12 +1,43 @@
 
 const Product = require("../models/product");
 
+
 // ======================================================
 // ESCAPE REGEX
 // ======================================================
 
 function escapeRegex(text) {
-    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    return String(text)
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+}
+
+
+// ======================================================
+// ACTIVE PRODUCT FILTER
+// ======================================================
+
+function activeProductFilter() {
+
+    return {
+
+        $or: [
+
+            {
+                isDeleted: false
+            },
+
+            {
+                isDeleted: {
+                    $exists: false
+                }
+            }
+
+        ]
+
+    };
+
 }
 
 
@@ -15,33 +46,37 @@ function escapeRegex(text) {
 // ======================================================
 
 async function searchProducts({
+
     category = null,
+
     subcategory = null,
+
     minPrice = null,
+
     maxPrice = null,
+
     search = null,
+
     isNewArrival = false
+
 }) {
 
     try {
 
         const query = {
+
             $and: [
 
-                // Product must not be deleted
-                {
-                    $or: [
-                        { isDeleted: false },
-                        { isDeleted: { $exists: false } }
-                    ]
-                },
+                activeProductFilter(),
 
-                // Product must be available
                 {
-                    stock: { $gt: 0 }
+                    stock: {
+                        $gt: 0
+                    }
                 }
 
             ]
+
         };
 
 
@@ -50,19 +85,26 @@ async function searchProducts({
         // ==================================================
 
         if (
+
             category !== null &&
+
             category !== undefined &&
+
             String(category).trim() !== ""
+
         ) {
 
             query.$and.push({
 
                 category: {
+
                     $regex:
                         `^${escapeRegex(
                             String(category).trim()
                         )}$`,
+
                     $options: "i"
+
                 }
 
             });
@@ -75,19 +117,26 @@ async function searchProducts({
         // ==================================================
 
         if (
+
             subcategory !== null &&
+
             subcategory !== undefined &&
+
             String(subcategory).trim() !== ""
+
         ) {
 
             query.$and.push({
 
                 subcategory: {
+
                     $regex:
                         `^${escapeRegex(
                             String(subcategory).trim()
                         )}$`,
+
                     $options: "i"
+
                 }
 
             });
@@ -115,15 +164,24 @@ async function searchProducts({
         // ==================================================
 
         if (
+
             minPrice !== null &&
+
             minPrice !== undefined &&
-            !Number.isNaN(Number(minPrice))
+
+            !Number.isNaN(
+                Number(minPrice)
+            )
+
         ) {
 
             query.$and.push({
 
                 price: {
-                    $gte: Number(minPrice)
+
+                    $gte:
+                        Number(minPrice)
+
                 }
 
             });
@@ -136,15 +194,24 @@ async function searchProducts({
         // ==================================================
 
         if (
+
             maxPrice !== null &&
+
             maxPrice !== undefined &&
-            !Number.isNaN(Number(maxPrice))
+
+            !Number.isNaN(
+                Number(maxPrice)
+            )
+
         ) {
 
             query.$and.push({
 
                 price: {
-                    $lte: Number(maxPrice)
+
+                    $lte:
+                        Number(maxPrice)
+
                 }
 
             });
@@ -157,9 +224,13 @@ async function searchProducts({
         // ==================================================
 
         if (
+
             search !== null &&
+
             search !== undefined &&
+
             String(search).trim() !== ""
+
         ) {
 
             const escapedSearch =
@@ -167,22 +238,35 @@ async function searchProducts({
                     String(search).trim()
                 );
 
+
             query.$and.push({
 
                 $or: [
 
                     {
+
                         name: {
-                            $regex: escapedSearch,
+
+                            $regex:
+                                escapedSearch,
+
                             $options: "i"
+
                         }
+
                     },
 
                     {
+
                         description: {
-                            $regex: escapedSearch,
+
+                            $regex:
+                                escapedSearch,
+
                             $options: "i"
+
                         }
+
                     }
 
                 ]
@@ -194,19 +278,25 @@ async function searchProducts({
 
         console.log(
             "MongoDB search query:",
-            JSON.stringify(query, null, 2)
+            JSON.stringify(
+                query,
+                null,
+                2
+            )
         );
 
 
         // ==================================================
-        // DETERMINISTIC SORT
+        // DETERMINISTIC RESULT ORDER
         // ==================================================
 
         const products =
             await Product.find(query)
+
                 .select(
                     "name category subcategory description price stock image rating reviews isNewArrival createdAt"
                 )
+
                 .sort({
 
                     createdAt: -1,
@@ -223,10 +313,14 @@ async function searchProducts({
 
 
         console.log(
+
             "Products:",
+
             products.map(
-                product => product.name
+                product =>
+                    product.name
             )
+
         );
 
 
@@ -256,8 +350,11 @@ async function getProductDetails(productName) {
     try {
 
         if (
+
             !productName ||
+
             String(productName).trim() === ""
+
         ) {
 
             return null;
@@ -266,11 +363,37 @@ async function getProductDetails(productName) {
 
 
         const cleanName =
-            String(productName).trim();
+            String(productName)
+
+                .replace(
+                    /\s+/g,
+                    " "
+                )
+
+                .trim();
+
+
+        console.log(
+            "Searching product case-insensitively:",
+            cleanName
+        );
 
 
         // ==================================================
-        // EXACT MATCH
+        // 1. EXACT NAME MATCH
+        // ==================================================
+        //
+        // IMPORTANT:
+        //
+        // $options: "i"
+        //
+        // means:
+        //
+        // Premium Formal Shirt
+        // premium formal shirt
+        // PREMIUM FORMAL SHIRT
+        //
+        // are all treated as the same name.
         // ==================================================
 
         let product =
@@ -302,11 +425,64 @@ async function getProductDetails(productName) {
             });
 
 
+        if (product) {
+
+            console.log(
+                "EXACT PRODUCT FOUND:",
+                product.name
+            );
+
+            return product;
+
+        }
+
+
         // ==================================================
-        // PARTIAL MATCH
+        // 2. FLEXIBLE WORD MATCH
+        // ==================================================
+        //
+        // This is only used if exact name doesn't exist.
+        //
+        // Example:
+        //
+        // "premium formal shirt"
+        //
+        // can match:
+        //
+        // "Premium Formal Shirt for Men"
+        //
+        // But the exact match above always gets priority.
         // ==================================================
 
-        if (!product) {
+        const words =
+            cleanName
+
+                .split(/\s+/)
+
+                .filter(
+                    word =>
+                        word.length > 0
+                )
+
+                .map(
+                    word =>
+                        escapeRegex(word)
+                );
+
+
+        if (
+            words.length > 0
+        ) {
+
+            const wordRegex =
+                words.join(".*");
+
+
+            console.log(
+                "Trying flexible product search:",
+                wordRegex
+            );
+
 
             product =
                 await Product.findOne({
@@ -314,7 +490,7 @@ async function getProductDetails(productName) {
                     name: {
 
                         $regex:
-                            escapeRegex(cleanName),
+                            wordRegex,
 
                         $options: "i"
 
@@ -335,6 +511,7 @@ async function getProductDetails(productName) {
                     ]
 
                 })
+
                 .sort({
 
                     createdAt: -1,
@@ -346,72 +523,16 @@ async function getProductDetails(productName) {
         }
 
 
-        // ==================================================
-        // WORD-BY-WORD MATCH
-        // ==================================================
-
-        if (!product) {
-
-            const words =
-                cleanName
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .map(
-                        word =>
-                            escapeRegex(word)
-                    );
-
-
-            if (words.length > 0) {
-
-                const wordRegex =
-                    words.join(".*");
-
-
-                product =
-                    await Product.findOne({
-
-                        name: {
-
-                            $regex: wordRegex,
-
-                            $options: "i"
-
-                        },
-
-                        $or: [
-
-                            {
-                                isDeleted: false
-                            },
-
-                            {
-                                isDeleted: {
-                                    $exists: false
-                                }
-                            }
-
-                        ]
-
-                    })
-                    .sort({
-
-                        createdAt: -1,
-
-                        _id: -1
-
-                    });
-
-            }
-
-        }
-
-
         console.log(
+
             "Product detail result:",
+
             product
+
                 ? product.name
+
                 : "NOT FOUND"
+
         );
 
 
@@ -444,25 +565,26 @@ async function findProductFromMessage(message) {
             return null;
         }
 
-
         const cleanMessage =
-            String(message).trim();
+            String(message)
+                .trim();
+
+        console.log(
+            "Trying to detect product from message:",
+            cleanMessage
+        );
 
 
-        // ==================================================
+        // ================================================
         // REMOVE QUESTION WORDS
-        // ==================================================
+        // ================================================
 
-        const productText =
+        let productText =
             cleanMessage
 
                 .replace(
-                    /\b(how much|what is the price|what's the price|price of|cost of|how many|is|are|available|availability|in stock|stock of|stock|tell me about|give me details|give details|show me details|show details|describe|description of|what category|what subcategory|what is|what's)\b/gi,
-                    " "
-                )
+                    /\b(what\s+is\s+the\s+price|what\s+is\s+price|what's\s+the\s+price|what\s+is\s+the\s+cost|what's\s+the\s+cost|price\s+of|cost\s+of|how\s+much|how\s+many|tell\s+me\s+about|give\s+me\s+details|give\s+details|show\s+me\s+details|show\s+details|description\s+of|what\s+category|what\s+subcategory|describe|description|available|availability|in\s+stock|stock\s+of|stock)\b/gi,
 
-                .replace(
-                    /\b(some|few|suggest|recommend|show me|find me|please)\b/gi,
                     " "
                 )
 
@@ -479,8 +601,24 @@ async function findProductFromMessage(message) {
                 .trim();
 
 
+        // ================================================
+        // REMOVE "IS" AND "ARE" ONLY WHEN THEY ARE
+        // STANDALONE WORDS
+        // ================================================
+
+        productText =
+            productText
+                .replace(
+                    /^(is|are)\s+/i,
+                    ""
+                )
+                .trim();
+
+
         if (!productText) {
+
             return null;
+
         }
 
 
@@ -490,9 +628,25 @@ async function findProductFromMessage(message) {
         );
 
 
-        return await getProductDetails(
-            productText
+        // ================================================
+        // SEARCH DATABASE
+        // ================================================
+
+        const product =
+            await getProductDetails(
+                productText
+            );
+
+
+        console.log(
+            "Detected product:",
+            product
+                ? product.name
+                : "NONE"
         );
+
+
+        return product;
 
 
     } catch (error) {
@@ -507,7 +661,6 @@ async function findProductFromMessage(message) {
     }
 
 }
-
 
 // ======================================================
 // EXPORT

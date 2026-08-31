@@ -3,19 +3,16 @@ const {
     Ollama
 } = require("ollama");
 
-
 const {
     searchProducts,
-    getProductDetails
+    getProductDetails,
+    findProductFromMessage
 } = require("./producttools");
 
 
 const ollama =
     new Ollama({
-
-        host:
-            "http://127.0.0.1:11434"
-
+        host: "http://127.0.0.1:11434"
     });
 
 
@@ -45,16 +42,12 @@ async function askShoppingAgent(message) {
         }
 
 
-        // ==================================================
-        // ALWAYS USE LOWERCASE FOR DETECTION
-        // ==================================================
-
         const lowerMessage =
             cleanMessage.toLowerCase();
 
 
         // ==================================================
-        // GENERAL CHAT
+        // GENERAL CONVERSATION
         // ==================================================
 
         const generalWords = [
@@ -77,16 +70,14 @@ async function askShoppingAgent(message) {
             )
         ) {
 
-            const response =
+            const generalResponse =
                 await ollama.chat({
 
-                    model:
-                        "llama3.2:3b",
+                    model: "llama3.2:3b",
 
                     messages: [
 
                         {
-
                             role: "system",
 
                             content: `
@@ -98,11 +89,9 @@ Be friendly, helpful and concise.
 
 Do not invent products.
 `
-
                         },
 
                         {
-
                             role: "user",
 
                             content:
@@ -115,366 +104,87 @@ Do not invent products.
                 });
 
 
-            return response.message.content;
+            return generalResponse
+                .message
+                .content;
 
         }
 
 
         // ==================================================
         // STEP 1
-        // NEW ARRIVAL DETECTION
+        // FIND SPECIFIC PRODUCT DIRECTLY FROM DATABASE
+        // ==================================================
+        //
+        // IMPORTANT:
+        //
+        // This happens BEFORE Ollama decides the category.
+        //
+        // Therefore:
+        //
+        // "what is the price of utility jacket"
+        //
+        // will first try to find:
+        //
+        // Utility Jacket
+        //
+        // regardless of capitalization.
         // ==================================================
 
-        const isNewArrivalRequest =
-            /\b(new arrival|new arrivals|new product|new products|latest arrival|latest arrivals|latest product|latest products|just arrived|fresh arrivals|newly added)\b/i
-                .test(
-                    cleanMessage
-                );
+        let detectedProduct =
+            await findProductFromMessage(
+                cleanMessage
+            );
+
+
+        console.log(
+            "Database detected product:",
+            detectedProduct
+                ? detectedProduct.name
+                : "NONE"
+        );
 
 
         // ==================================================
         // STEP 2
-        // CATEGORY DETECTION
-        // ==================================================
-
-        let category = null;
-
-        let subcategory = null;
-
-
-        if (
-            !isNewArrivalRequest
-        ) {
-
-            if (
-                /\bdresses?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Women";
-                subcategory = "Dresses";
-
-            }
-
-            else if (
-                /\btops?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Women";
-                subcategory = "Tops";
-
-            }
-
-            else if (
-                /\b(ethnic wear|ethnicwear|traditional wear)\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Women";
-                subcategory = "Ethnic Wear";
-
-            }
-
-            else if (
-                /\bshirts?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Men";
-                subcategory = "Shirts";
-
-            }
-
-            else if (
-                /\bjeans?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Men";
-                subcategory = "Jeans";
-
-            }
-
-            else if (
-                /\bjackets?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Men";
-                subcategory = "Jackets";
-
-            }
-
-            else if (
-                /\bbags?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Accessories";
-                subcategory = "Bags";
-
-            }
-
-            else if (
-                /\bwallets?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Accessories";
-                subcategory = "Wallets";
-
-            }
-
-            else if (
-                /\bwatches?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Accessories";
-                subcategory = "Watches";
-
-            }
-
-            else if (
-                /\bsunglasses?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                category = "Accessories";
-                subcategory = "Sunglasses";
-
-            }
-
-        }
-
-
-        // ==================================================
-        // STEP 3
-        // PRICE DETECTION
-        // ==================================================
-
-        let minPrice = null;
-
-        let maxPrice = null;
-
-
-        const betweenMatch =
-            lowerMessage.match(
-                /between\s+(\d+)\s+(?:and|to)\s+(\d+)/
-            );
-
-
-        if (betweenMatch) {
-
-            minPrice =
-                Number(
-                    betweenMatch[1]
-                );
-
-            maxPrice =
-                Number(
-                    betweenMatch[2]
-                );
-
-        }
-
-
-        const underMatch =
-            lowerMessage.match(
-                /(?:under|below|less than)\s+₹?\s*(\d+)/
-            );
-
-
-        if (underMatch) {
-
-            maxPrice =
-                Number(
-                    underMatch[1]
-                );
-
-        }
-
-
-        const aboveMatch =
-            lowerMessage.match(
-                /(?:above|over|more than)\s+₹?\s*(\d+)/
-            );
-
-
-        if (aboveMatch) {
-
-            minPrice =
-                Number(
-                    aboveMatch[1]
-                );
-
-        }
-
-
-        // ==================================================
-        // STEP 4
-        // RECOMMENDATION DETECTION
-        // ==================================================
-
-        const isRecommendation =
-            /\b(some|few|suggest|recommend|recommendation|recommendations)\b/i
-                .test(
-                    cleanMessage
-                );
-
-
-        // ==================================================
-        // STEP 5
-        // EXPLICIT NUMBER
-        // ==================================================
-
-        const numberMatch =
-            lowerMessage.match(
-                /\b(\d+)\b/
-            );
-
-
-        const requestedNumber =
-            numberMatch
-                ? Number(
-                    numberMatch[1]
-                )
-                : null;
-
-
-        // ==================================================
-        // STEP 6
         // SPECIFIC PRODUCT QUESTION
         // ==================================================
 
-        const detailQuestion =
-            /\b(price|cost|stock|available|availability|in stock|how many|description|describe|details|detail|information|info|tell me about|what category|what subcategory)\b/i
-                .test(
-                    cleanMessage
-                );
-
-
-        // ==================================================
-        // STEP 7
-        // TRY SPECIFIC PRODUCT
-        // ==================================================
-
-        let detectedProduct = null;
-
-
-        if (
-            detailQuestion
-        ) {
-
-            // Ask Ollama only for the product name
-            // in specific product questions.
-
-            const productResponse =
-                await ollama.chat({
-
-                    model:
-                        "llama3.2:3b",
-
-                    messages: [
-
-                        {
-
-                            role: "system",
-
-                            content: `
-You are a product name extractor.
-
-VELORA is a fashion store.
-
-Extract ONLY the specific product name
-from the customer's question.
-
-Return ONLY the product name.
-
-Do not return category names.
-
-Do not return explanations.
-
-Example:
-
-"what is the price of Utility Jacket"
-
-Return:
-
-Utility Jacket
-
-Example:
-
-"how many Oversized Sunglasses are available"
-
-Return:
-
-Oversized Sunglasses
-`
-
-                        },
-
-                        {
-
-                            role: "user",
-
-                            content:
-                                cleanMessage
-
-                        }
-
-                    ]
-
-                });
-
-
-            const possibleProductName =
-                productResponse
-                    .message
-                    .content
-                    .trim();
-
-
-            console.log(
-                "Possible product from Ollama:",
-                possibleProductName
+        const specificQuestion =
+            isSpecificProductQuestion(
+                cleanMessage
             );
 
 
-            detectedProduct =
-                await getProductDetails(
-                    possibleProductName
-                );
-
-        }
-
-
-        // ==================================================
-        // STEP 8
-        // PRODUCT DETAILS RESPONSE
-        // ==================================================
-
         if (
             detectedProduct &&
-            detailQuestion
+            specificQuestion
         ) {
+
+            console.log(
+                "SPECIFIC PRODUCT QUESTION:"
+            );
+
+            console.log(
+                detectedProduct.name
+            );
+
 
             const detailType =
                 detectDetailType(
                     cleanMessage
                 );
 
+
+            console.log(
+                "Detected detail type:",
+                detailType
+            );
+
+
+            // ==================================================
+            // PRICE
+            // ==================================================
 
             if (
                 detailType === "price"
@@ -487,6 +197,10 @@ Oversized Sunglasses
 
             }
 
+
+            // ==================================================
+            // STOCK
+            // ==================================================
 
             if (
                 detailType === "stock"
@@ -513,18 +227,37 @@ Oversized Sunglasses
             }
 
 
+            // ==================================================
+            // DESCRIPTION
+            // ==================================================
+
             if (
                 detailType === "description"
             ) {
 
-                return (
+                if (
                     detectedProduct.description
-                        ? `${detectedProduct.name}: ${detectedProduct.description}`
-                        : `Sorry, no description is available for ${detectedProduct.name}.`
+                ) {
+
+                    return (
+                        `${detectedProduct.name}: ` +
+                        `${detectedProduct.description}`
+                    );
+
+                }
+
+
+                return (
+                    `Sorry, no description is available ` +
+                    `for ${detectedProduct.name}.`
                 );
 
             }
 
+
+            // ==================================================
+            // CATEGORY
+            // ==================================================
 
             if (
                 detailType === "category"
@@ -538,21 +271,36 @@ Oversized Sunglasses
             }
 
 
+            // ==================================================
+            // SUBCATEGORY
+            // ==================================================
+
             if (
                 detailType === "subcategory"
             ) {
 
                 return (
-                    `${detectedProduct.name} is listed under the ` +
-                    `${detectedProduct.subcategory} subcategory.`
+                    `${detectedProduct.name} is listed under ` +
+                    `the ${detectedProduct.subcategory} subcategory.`
                 );
 
             }
 
 
-            return (
+            // ==================================================
+            // FULL DETAILS
+            // ==================================================
 
-                `Here are the details for ${detectedProduct.name}:\n\n` +
+            const availability =
+                detectedProduct.stock > 0
+                    ? `In stock (${detectedProduct.stock})`
+                    : "Out of stock";
+
+
+            let fullResponse =
+
+                `Here are the details for ` +
+                `${detectedProduct.name}:\n\n` +
 
                 `Name: ${detectedProduct.name}\n` +
 
@@ -562,48 +310,723 @@ Oversized Sunglasses
 
                 `Subcategory: ${detectedProduct.subcategory}\n` +
 
-                `Availability: ${
-                    detectedProduct.stock > 0
-                        ? `In stock (${detectedProduct.stock})`
-                        : "Out of stock"
-                }\n` +
+                `Availability: ${availability}\n`;
 
-                (
-                    detectedProduct.description
-                        ? `Description: ${detectedProduct.description}\n`
-                        : ""
-                )
 
+            if (
+                detectedProduct.description
+            ) {
+
+                fullResponse +=
+                    `Description: ` +
+                    `${detectedProduct.description}\n`;
+
+            }
+
+
+            fullResponse +=
+                "\nWould you like me to help you find something else?";
+
+
+            return fullResponse;
+
+        }
+
+
+        // ==================================================
+        // STEP 3
+        // ASK OLLAMA TO UNDERSTAND SHOPPING FILTERS
+        // ==================================================
+
+        const aiResponse =
+            await ollama.chat({
+
+                model: "llama3.2:3b",
+
+                messages: [
+
+                    {
+
+                        role: "system",
+
+                        content: `
+You are the VELORA Shopping Assistant.
+
+Your job is ONLY to understand the customer's
+shopping request and return JSON.
+
+Return ONLY valid JSON.
+
+Do not use markdown.
+Do not add explanations.
+
+
+==========================================
+AVAILABLE CATEGORIES
+==========================================
+
+Women
+Men
+Accessories
+
+
+==========================================
+AVAILABLE SUBCATEGORIES
+==========================================
+
+Women:
+
+Dresses
+Tops
+Ethnic Wear
+
+Men:
+
+Shirts
+Jeans
+Jackets
+
+Accessories:
+
+Bags
+Wallets
+Watches
+Sunglasses
+
+
+==========================================
+CATEGORY MAPPING
+==========================================
+
+Dresses -> Women
+Tops -> Women
+Ethnic Wear -> Women
+
+Shirts -> Men
+Jeans -> Men
+Jackets -> Men
+
+Bags -> Accessories
+Wallets -> Accessories
+Watches -> Accessories
+Sunglasses -> Accessories
+
+
+==========================================
+NEW ARRIVALS
+==========================================
+
+New Arrivals is NOT a category.
+
+It is a special product filter.
+
+If the customer asks for:
+
+new arrivals
+new arrival
+new products
+latest arrivals
+latest products
+just arrived
+fresh arrivals
+
+set:
+
+"isNewArrival": true
+
+
+==========================================
+PRICE FILTERS
+==========================================
+
+under 1000
+=> maxPrice = 1000
+
+below 1000
+=> maxPrice = 1000
+
+less than 1000
+=> maxPrice = 1000
+
+above 1000
+=> minPrice = 1000
+
+more than 1000
+=> minPrice = 1000
+
+between 500 and 1500
+=> minPrice = 500
+maxPrice = 1500
+
+
+==========================================
+NORMAL SEARCH
+==========================================
+
+"show me jackets"
+
+category = Men
+subcategory = Jackets
+
+"show me bags"
+
+category = Accessories
+subcategory = Bags
+
+"show me dresses"
+
+category = Women
+subcategory = Dresses
+
+
+==========================================
+RECOMMENDATIONS
+==========================================
+
+Normal requests:
+
+showAll = true
+
+Recommendation requests:
+
+showAll = false
+
+Examples:
+
+"suggest some jackets"
+
+"recommend some bags"
+
+"show me some watches"
+
+"give me 3 dresses"
+
+For:
+
+some
+few
+suggest
+recommend
+
+set:
+
+showAll = false
+
+
+==========================================
+IMPORTANT
+==========================================
+
+Do NOT invent categories.
+
+Do NOT invent subcategories.
+
+Shoes is NOT available.
+
+Do NOT treat a known product name as a
+subcategory just because it contains a
+subcategory word.
+
+For example:
+
+Utility Jacket
+
+contains "Jacket", but it is a
+specific product.
+
+Oversized Sunglasses
+
+contains "Sunglasses", but it is a
+specific product.
+
+Leather Wallet
+
+contains "Wallet", but it is a
+specific product.
+
+
+==========================================
+CASE SENSITIVITY
+==========================================
+
+Customer input is NOT case-sensitive.
+
+Treat these as exactly the same:
+
+watches
+Watches
+WATCHES
+WaTcHeS
+
+utility jacket
+Utility Jacket
+UTILITY JACKET
+
+premium formal shirt
+Premium Formal Shirt
+PREMIUM FORMAL SHIRT
+
+
+==========================================
+JSON FORMAT
+==========================================
+
+{
+    "category": null,
+    "subcategory": null,
+    "minPrice": null,
+    "maxPrice": null,
+    "search": null,
+    "productName": null,
+    "detailType": null,
+    "isNewArrival": false,
+    "showAll": false,
+    "general": false,
+    "productDetails": false
+}
+`
+
+                    },
+
+                    {
+
+                        role: "user",
+
+                        content:
+                            cleanMessage
+
+                    }
+
+                ]
+
+            });
+
+
+        console.log(
+            "Ollama intent response:"
+        );
+
+        console.log(
+            aiResponse
+                .message
+                .content
+        );
+
+
+        // ==================================================
+        // STEP 4
+        // PARSE JSON
+        // ==================================================
+
+        let intent;
+
+
+        try {
+
+            let jsonText =
+                aiResponse
+                    .message
+                    .content
+                    .replace(
+                        /```json/g,
+                        ""
+                    )
+                    .replace(
+                        /```/g,
+                        ""
+                    )
+                    .trim();
+
+
+            intent =
+                JSON.parse(
+                    jsonText
+                );
+
+
+        } catch (error) {
+
+            console.error(
+                "Could not parse Ollama JSON:",
+                aiResponse.message.content
             );
+
+
+            return (
+                "Sorry, I couldn't understand your request. " +
+                "Please try again."
+            );
+
+        }
+
+
+        console.log(
+            "Parsed intent:"
+        );
+
+        console.log(
+            intent
+        );
+
+
+        // ==================================================
+        // STEP 5
+        // FORCE NEW ARRIVAL DETECTION
+        // ==================================================
+
+        const newArrivalWords = [
+
+            "new arrival",
+            "new arrivals",
+            "new product",
+            "new products",
+            "latest arrival",
+            "latest arrivals",
+            "latest product",
+            "latest products",
+            "just arrived",
+            "fresh arrivals"
+
+        ];
+
+
+        const isNewArrivalRequest =
+            newArrivalWords.some(
+                word =>
+                    lowerMessage.includes(
+                        word
+                    )
+            );
+
+
+        if (
+            isNewArrivalRequest
+        ) {
+
+            intent.isNewArrival =
+                true;
+
+
+            // New arrivals are independent
+            // of category/subcategory.
+
+            intent.category =
+                null;
+
+            intent.subcategory =
+                null;
+
+        }
+
+
+        // ==================================================
+        // STEP 6
+        // FORCE CATEGORY MAPPING
+        // ==================================================
+
+        if (
+            !isNewArrivalRequest
+        ) {
+
+            if (
+                /\bdresses?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Women";
+
+                intent.subcategory =
+                    "Dresses";
+
+            }
+
+            else if (
+                /\btops?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Women";
+
+                intent.subcategory =
+                    "Tops";
+
+            }
+
+            else if (
+                /\b(ethnic wear|ethnicwear|traditional wear)\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Women";
+
+                intent.subcategory =
+                    "Ethnic Wear";
+
+            }
+
+            else if (
+                /\bshirts?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Men";
+
+                intent.subcategory =
+                    "Shirts";
+
+            }
+
+            else if (
+                /\bjeans?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Men";
+
+                intent.subcategory =
+                    "Jeans";
+
+            }
+
+            else if (
+                /\bjackets?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Men";
+
+                intent.subcategory =
+                    "Jackets";
+
+            }
+
+            else if (
+                /\bbags?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Accessories";
+
+                intent.subcategory =
+                    "Bags";
+
+            }
+
+            else if (
+                /\bwallets?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Accessories";
+
+                intent.subcategory =
+                    "Wallets";
+
+            }
+
+            else if (
+                /\b(watches|watch)\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Accessories";
+
+                intent.subcategory =
+                    "Watches";
+
+            }
+
+            else if (
+                /\b(sunglasses|sunglass)\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                intent.category =
+                    "Accessories";
+
+                intent.subcategory =
+                    "Sunglasses";
+
+            }
+
+        }
+
+
+        // ==================================================
+        // STEP 7
+        // RECOMMENDATION DETECTION
+        // ==================================================
+
+        const recommendationWords = [
+
+            "suggest",
+            "recommend",
+            "some",
+            "few"
+
+        ];
+
+
+        const isRecommendation =
+            recommendationWords.some(
+                word =>
+                    new RegExp(
+                        `\\b${word}\\b`,
+                        "i"
+                    ).test(
+                        cleanMessage
+                    )
+            );
+
+
+        // ==================================================
+        // EXPLICIT NUMBER
+        // ==================================================
+
+        const numberMatch =
+            lowerMessage.match(
+                /\b([1-3])\b/
+            );
+
+
+        const hasSmallNumber =
+            Boolean(
+                numberMatch
+            );
+
+
+        // ==================================================
+        // STEP 8
+        // SHOW ALL / SHOW 3
+        // ==================================================
+
+        if (
+            isNewArrivalRequest
+        ) {
+
+            intent.showAll =
+                !isRecommendation &&
+                !hasSmallNumber;
+
+        }
+
+        else if (
+
+            intent.category ||
+
+            intent.subcategory ||
+
+            intent.search ||
+
+            intent.minPrice !== null ||
+
+            intent.maxPrice !== null
+
+        ) {
+
+            intent.showAll =
+                !isRecommendation &&
+                !hasSmallNumber;
 
         }
 
 
         // ==================================================
         // STEP 9
-        // SEARCH DATABASE
+        // NOT GENERAL
+        // ==================================================
+
+        if (
+
+            intent.category ||
+
+            intent.subcategory ||
+
+            intent.search ||
+
+            intent.productName ||
+
+            intent.productDetails ||
+
+            intent.isNewArrival ||
+
+            intent.minPrice !== null ||
+
+            intent.maxPrice !== null
+
+        ) {
+
+            intent.general =
+                false;
+
+        }
+
+
+        console.log(
+            "Final corrected intent:"
+        );
+
+        console.log(
+            intent
+        );
+
+
+        // ==================================================
+        // STEP 10
+        // DATABASE SEARCH
         // ==================================================
 
         const products =
             await searchProducts({
 
-                category,
+                category:
+                    intent.category,
 
-                subcategory,
+                subcategory:
+                    intent.subcategory,
 
-                minPrice,
+                minPrice:
+                    intent.minPrice,
 
-                maxPrice,
+                maxPrice:
+                    intent.maxPrice,
 
-                search: null,
+                search:
+                    intent.search,
 
                 isNewArrival:
-                    isNewArrivalRequest
+                    intent.isNewArrival === true
 
             });
 
 
+        console.log(
+            "Final database product count:",
+            products.length
+        );
+
+
         // ==================================================
+        // STEP 11
         // NO PRODUCTS
         // ==================================================
 
@@ -613,7 +1036,7 @@ Oversized Sunglasses
         ) {
 
             if (
-                isNewArrivalRequest
+                intent.isNewArrival
             ) {
 
                 return (
@@ -633,31 +1056,27 @@ Oversized Sunglasses
 
 
         // ==================================================
-        // STEP 10
-        // HOW MANY PRODUCTS TO SHOW
+        // STEP 12
+        // SELECT PRODUCTS
         // ==================================================
 
         let productsToShow;
 
 
-        // Explicit number
         if (
-            requestedNumber &&
-            requestedNumber > 0
+            intent.showAll
         ) {
 
+            // SHOW EVERY MATCHING PRODUCT
+
             productsToShow =
-                products.slice(
-                    0,
-                    requestedNumber
-                );
+                products;
 
         }
 
-        // Some / suggest / recommend
-        else if (
-            isRecommendation
-        ) {
+        else {
+
+            // SHOW ONLY 3 RECOMMENDATIONS
 
             productsToShow =
                 products.slice(
@@ -667,29 +1086,27 @@ Oversized Sunglasses
 
         }
 
-        // Normal request = ALL
-        else {
 
-            productsToShow =
-                products;
-
-        }
+        console.log(
+            "Products selected:",
+            productsToShow.length
+        );
 
 
         // ==================================================
-        // STEP 11
-        // RESPONSE TITLE
+        // STEP 13
+        // RESPONSE HEADER
         // ==================================================
 
         let responseText;
 
 
         if (
-            isNewArrivalRequest
+            intent.isNewArrival
         ) {
 
             if (
-                productsToShow.length === products.length
+                intent.showAll
             ) {
 
                 responseText =
@@ -708,26 +1125,31 @@ Oversized Sunglasses
 
         }
 
-        else if (
-            isRecommendation
-        ) {
-
-            responseText =
-                "Here are some matching products available at VELORA:\n\n";
-
-        }
-
         else {
 
-            responseText =
-                `Here are all ${productsToShow.length} ` +
-                `matching products available at VELORA:\n\n`;
+            if (
+                intent.showAll
+            ) {
+
+                responseText =
+                    `Here are all ${productsToShow.length} ` +
+                    `matching products available at VELORA:\n\n`;
+
+            }
+
+            else {
+
+                responseText =
+                    `Here are some matching products ` +
+                    `available at VELORA:\n\n`;
+
+            }
 
         }
 
 
         // ==================================================
-        // STEP 12
+        // STEP 14
         // DISPLAY PRODUCTS
         // ==================================================
 
@@ -736,7 +1158,9 @@ Oversized Sunglasses
 
                 const availability =
                     product.stock > 0
+
                         ? `In stock (${product.stock})`
+
                         : "Out of stock";
 
 
@@ -774,19 +1198,74 @@ Oversized Sunglasses
 
 
 // ======================================================
+// SPECIFIC PRODUCT QUESTION
+// ======================================================
+
+function isSpecificProductQuestion(message) {
+
+    const text =
+        String(message || "")
+            .toLowerCase();
+
+
+    const detailWords = [
+
+        "price",
+        "cost",
+        "how much",
+
+        "stock",
+        "available",
+        "availability",
+        "in stock",
+        "how many",
+
+        "description",
+        "describe",
+
+        "tell me about",
+        "details",
+        "detail",
+        "information",
+        "info",
+
+        "what category",
+        "what subcategory"
+
+    ];
+
+
+    return detailWords.some(
+        word =>
+            text.includes(word)
+    );
+
+}
+
+
+// ======================================================
 // DETAIL TYPE
 // ======================================================
 
 function detectDetailType(message) {
 
     const text =
-        message.toLowerCase();
+        String(message || "")
+            .toLowerCase();
 
+
+    // ==================================================
+    // PRICE
+    // ==================================================
 
     if (
+
         text.includes("price") ||
+
         text.includes("cost") ||
+
         text.includes("how much")
+
     ) {
 
         return "price";
@@ -794,11 +1273,20 @@ function detectDetailType(message) {
     }
 
 
+    // ==================================================
+    // STOCK
+    // ==================================================
+
     if (
+
         text.includes("stock") ||
+
         text.includes("available") ||
+
         text.includes("availability") ||
+
         text.includes("how many")
+
     ) {
 
         return "stock";
@@ -806,15 +1294,26 @@ function detectDetailType(message) {
     }
 
 
+    // ==================================================
+    // DESCRIPTION
+    // ==================================================
+
     if (
+
         text.includes("description") ||
+
         text.includes("describe")
+
     ) {
 
         return "description";
 
     }
 
+
+    // ==================================================
+    // CATEGORY
+    // ==================================================
 
     if (
         text.includes("what category")
@@ -825,6 +1324,10 @@ function detectDetailType(message) {
     }
 
 
+    // ==================================================
+    // SUBCATEGORY
+    // ==================================================
+
     if (
         text.includes("what subcategory")
     ) {
@@ -833,6 +1336,10 @@ function detectDetailType(message) {
 
     }
 
+
+    // ==================================================
+    // FULL DETAILS
+    // ==================================================
 
     return "full";
 
