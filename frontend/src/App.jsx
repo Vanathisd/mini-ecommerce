@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -16,6 +17,7 @@ import Support from "./pages/support";
 import Login from "./pages/login";
 import CreateAccount from "./pages/createaccount";
 import MyOrders from "./pages/myorders";
+
 import AdminOrders from "./pages/adminorders";
 import AdminDashboard from "./pages/admindashboard";
 import AdminRoute from "./components/adminroute";
@@ -25,14 +27,15 @@ import AdminCategories from "./pages/admincategories";
 import AdminPayments from "./pages/adminpayments";
 import AdminAnalytics from "./pages/adminanalytics";
 import AdminSettings from "./pages/adminsettings";
+
 import PrivacyPolicy from "./pages/privacypolicy";
 import Terms from "./pages/terms";
 import ForgotPassword from "./pages/forgotpwd";
+
 import Assistant from "./pages/assistant";
 
-
-
 import "./App.css";
+
 
 function App() {
 
@@ -47,6 +50,7 @@ function App() {
     );
 }
 
+
 function AppContent() {
 
     const location = useLocation();
@@ -56,30 +60,93 @@ function AppContent() {
 
     return (
         <>
+
+            {/* USER NAVBAR */}
             {!isAdminPage && <Navbar />}
+
 
             <Routes>
 
-                {/* USER ROUTES */}
-                <Route path="/" element={<Home />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/new-arrivals" element={<NewArrivals />} />
-                <Route path="/product/:id" element={<ProductDetails />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/ordersuccess" element={<OrderSuccess />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/createaccount" element={<CreateAccount />} />
-                <Route path="/myorders" element={<MyOrders />} />
-                <Route path="/adminpayments" element={<AdminPayments />} />
-                <Route path="/privacypolicy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/forgotpwd" element={<ForgotPassword />} />
-                <Route path="/assistant" element={<Assistant />} />
+                {/* ================= USER ROUTES ================= */}
 
-                {/* ADMIN ROUTES */}
+                <Route
+                    path="/"
+                    element={<Home />}
+                />
+
+                <Route
+                    path="/shop"
+                    element={<Shop />}
+                />
+
+                <Route
+                    path="/new-arrivals"
+                    element={<NewArrivals />}
+                />
+
+                <Route
+                    path="/product/:id"
+                    element={<ProductDetails />}
+                />
+
+                <Route
+                    path="/cart"
+                    element={<Cart />}
+                />
+
+                <Route
+                    path="/checkout"
+                    element={<Checkout />}
+                />
+
+                <Route
+                    path="/ordersuccess"
+                    element={<OrderSuccess />}
+                />
+
+                <Route
+                    path="/about"
+                    element={<About />}
+                />
+
+                <Route
+                    path="/support"
+                    element={<Support />}
+                />
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/createaccount"
+                    element={<CreateAccount />}
+                />
+
+                <Route
+                    path="/myorders"
+                    element={<MyOrders />}
+                />
+
+                <Route
+                    path="/privacypolicy"
+                    element={<PrivacyPolicy />}
+                />
+
+                <Route
+                    path="/terms"
+                    element={<Terms />}
+                />
+
+                <Route
+                    path="/forgotpwd"
+                    element={<ForgotPassword />}
+                />
+
+
+                {/* ================= ADMIN ROUTES ================= */}
+
                 <Route
                     path="/admin"
                     element={
@@ -106,6 +173,7 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
                 <Route
                     path="/adminusers"
                     element={
@@ -114,6 +182,7 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
                 <Route
                     path="/admincategories"
                     element={
@@ -122,6 +191,7 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
                 <Route
                     path="/adminpayments"
                     element={
@@ -130,6 +200,7 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
                 <Route
                     path="/adminanalytics"
                     element={
@@ -138,6 +209,7 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
                 <Route
                     path="/adminsettings"
                     element={
@@ -146,10 +218,19 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
+
             </Routes>
 
+
             {!isAdminPage && <Footer />}
+
+
+            {!isAdminPage && <Assistant />}
+
         </>
     );
 }
+
+
 export default App;
+
