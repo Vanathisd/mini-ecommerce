@@ -1,3 +1,4 @@
+
 const {
     Ollama
 } = require("ollama");
@@ -5,14 +6,16 @@ const {
 
 const {
     searchProducts,
-    getProductDetails,
-    findProductFromMessage
+    getProductDetails
 } = require("./producttools");
 
 
 const ollama =
     new Ollama({
-        host: "http://127.0.0.1:11434"
+
+        host:
+            "http://127.0.0.1:11434"
+
     });
 
 
@@ -42,12 +45,16 @@ async function askShoppingAgent(message) {
         }
 
 
+        // ==================================================
+        // ALWAYS USE LOWERCASE FOR DETECTION
+        // ==================================================
+
         const lowerMessage =
             cleanMessage.toLowerCase();
 
 
         // ==================================================
-        // GENERAL CONVERSATION
+        // GENERAL CHAT
         // ==================================================
 
         const generalWords = [
@@ -70,14 +77,16 @@ async function askShoppingAgent(message) {
             )
         ) {
 
-            const generalResponse =
+            const response =
                 await ollama.chat({
 
-                    model: "llama3.2:3b",
+                    model:
+                        "llama3.2:3b",
 
                     messages: [
 
                         {
+
                             role: "system",
 
                             content: `
@@ -89,9 +98,11 @@ Be friendly, helpful and concise.
 
 Do not invent products.
 `
+
                         },
 
                         {
+
                             role: "user",
 
                             content:
@@ -104,84 +115,366 @@ Do not invent products.
                 });
 
 
-            return generalResponse
-                .message
-                .content;
+            return response.message.content;
 
         }
 
 
         // ==================================================
         // STEP 1
-        // CHECK DATABASE FOR EXACT PRODUCT FIRST
-        // ==================================================
-        //
-        // This is VERY important.
-        //
-        // Example:
-        //
-        // "How many utility jacket are available?"
-        //
-        // Instead of allowing Ollama to decide that this
-        // is just "Jackets", we first check MongoDB.
-        //
-        // If "Utility Jacket" exists, it wins.
+        // NEW ARRIVAL DETECTION
         // ==================================================
 
-        let detectedProduct =
-            await findProductFromMessage(
-                cleanMessage
-            );
-
-
-        console.log(
-            "Database detected product:",
-            detectedProduct
-                ? detectedProduct.name
-                : "NONE"
-        );
+        const isNewArrivalRequest =
+            /\b(new arrival|new arrivals|new product|new products|latest arrival|latest arrivals|latest product|latest products|just arrived|fresh arrivals|newly added)\b/i
+                .test(
+                    cleanMessage
+                );
 
 
         // ==================================================
         // STEP 2
-        // DETECT PRODUCT DETAIL QUESTION
+        // CATEGORY DETECTION
         // ==================================================
 
-        const specificQuestion =
-            isSpecificProductQuestion(
-                cleanMessage
-            );
+        let category = null;
+
+        let subcategory = null;
 
 
         if (
-            detectedProduct &&
-            specificQuestion
+            !isNewArrivalRequest
         ) {
 
-            console.log(
-                "SPECIFIC PRODUCT QUESTION:"
+            if (
+                /\bdresses?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Women";
+                subcategory = "Dresses";
+
+            }
+
+            else if (
+                /\btops?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Women";
+                subcategory = "Tops";
+
+            }
+
+            else if (
+                /\b(ethnic wear|ethnicwear|traditional wear)\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Women";
+                subcategory = "Ethnic Wear";
+
+            }
+
+            else if (
+                /\bshirts?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Men";
+                subcategory = "Shirts";
+
+            }
+
+            else if (
+                /\bjeans?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Men";
+                subcategory = "Jeans";
+
+            }
+
+            else if (
+                /\bjackets?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Men";
+                subcategory = "Jackets";
+
+            }
+
+            else if (
+                /\bbags?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Accessories";
+                subcategory = "Bags";
+
+            }
+
+            else if (
+                /\bwallets?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Accessories";
+                subcategory = "Wallets";
+
+            }
+
+            else if (
+                /\bwatches?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Accessories";
+                subcategory = "Watches";
+
+            }
+
+            else if (
+                /\bsunglasses?\b/i.test(
+                    cleanMessage
+                )
+            ) {
+
+                category = "Accessories";
+                subcategory = "Sunglasses";
+
+            }
+
+        }
+
+
+        // ==================================================
+        // STEP 3
+        // PRICE DETECTION
+        // ==================================================
+
+        let minPrice = null;
+
+        let maxPrice = null;
+
+
+        const betweenMatch =
+            lowerMessage.match(
+                /between\s+(\d+)\s+(?:and|to)\s+(\d+)/
             );
 
-            console.log(
-                detectedProduct.name
+
+        if (betweenMatch) {
+
+            minPrice =
+                Number(
+                    betweenMatch[1]
+                );
+
+            maxPrice =
+                Number(
+                    betweenMatch[2]
+                );
+
+        }
+
+
+        const underMatch =
+            lowerMessage.match(
+                /(?:under|below|less than)\s+₹?\s*(\d+)/
             );
 
+
+        if (underMatch) {
+
+            maxPrice =
+                Number(
+                    underMatch[1]
+                );
+
+        }
+
+
+        const aboveMatch =
+            lowerMessage.match(
+                /(?:above|over|more than)\s+₹?\s*(\d+)/
+            );
+
+
+        if (aboveMatch) {
+
+            minPrice =
+                Number(
+                    aboveMatch[1]
+                );
+
+        }
+
+
+        // ==================================================
+        // STEP 4
+        // RECOMMENDATION DETECTION
+        // ==================================================
+
+        const isRecommendation =
+            /\b(some|few|suggest|recommend|recommendation|recommendations)\b/i
+                .test(
+                    cleanMessage
+                );
+
+
+        // ==================================================
+        // STEP 5
+        // EXPLICIT NUMBER
+        // ==================================================
+
+        const numberMatch =
+            lowerMessage.match(
+                /\b(\d+)\b/
+            );
+
+
+        const requestedNumber =
+            numberMatch
+                ? Number(
+                    numberMatch[1]
+                )
+                : null;
+
+
+        // ==================================================
+        // STEP 6
+        // SPECIFIC PRODUCT QUESTION
+        // ==================================================
+
+        const detailQuestion =
+            /\b(price|cost|stock|available|availability|in stock|how many|description|describe|details|detail|information|info|tell me about|what category|what subcategory)\b/i
+                .test(
+                    cleanMessage
+                );
+
+
+        // ==================================================
+        // STEP 7
+        // TRY SPECIFIC PRODUCT
+        // ==================================================
+
+        let detectedProduct = null;
+
+
+        if (
+            detailQuestion
+        ) {
+
+            // Ask Ollama only for the product name
+            // in specific product questions.
+
+            const productResponse =
+                await ollama.chat({
+
+                    model:
+                        "llama3.2:3b",
+
+                    messages: [
+
+                        {
+
+                            role: "system",
+
+                            content: `
+You are a product name extractor.
+
+VELORA is a fashion store.
+
+Extract ONLY the specific product name
+from the customer's question.
+
+Return ONLY the product name.
+
+Do not return category names.
+
+Do not return explanations.
+
+Example:
+
+"what is the price of Utility Jacket"
+
+Return:
+
+Utility Jacket
+
+Example:
+
+"how many Oversized Sunglasses are available"
+
+Return:
+
+Oversized Sunglasses
+`
+
+                        },
+
+                        {
+
+                            role: "user",
+
+                            content:
+                                cleanMessage
+
+                        }
+
+                    ]
+
+                });
+
+
+            const possibleProductName =
+                productResponse
+                    .message
+                    .content
+                    .trim();
+
+
+            console.log(
+                "Possible product from Ollama:",
+                possibleProductName
+            );
+
+
+            detectedProduct =
+                await getProductDetails(
+                    possibleProductName
+                );
+
+        }
+
+
+        // ==================================================
+        // STEP 8
+        // PRODUCT DETAILS RESPONSE
+        // ==================================================
+
+        if (
+            detectedProduct &&
+            detailQuestion
+        ) {
 
             const detailType =
                 detectDetailType(
                     cleanMessage
                 );
 
-
-            console.log(
-                "Detected detail type:",
-                detailType
-            );
-
-
-            // ==================================================
-            // PRICE
-            // ==================================================
 
             if (
                 detailType === "price"
@@ -194,10 +487,6 @@ Do not invent products.
 
             }
 
-
-            // ==================================================
-            // STOCK
-            // ==================================================
 
             if (
                 detailType === "stock"
@@ -224,37 +513,18 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // DESCRIPTION
-            // ==================================================
-
             if (
                 detailType === "description"
             ) {
 
-                if (
-                    detectedProduct.description
-                ) {
-
-                    return (
-                        `${detectedProduct.name}: ` +
-                        `${detectedProduct.description}`
-                    );
-
-                }
-
-
                 return (
-                    `Sorry, no description is available ` +
-                    `for ${detectedProduct.name}.`
+                    detectedProduct.description
+                        ? `${detectedProduct.name}: ${detectedProduct.description}`
+                        : `Sorry, no description is available for ${detectedProduct.name}.`
                 );
 
             }
 
-
-            // ==================================================
-            // CATEGORY
-            // ==================================================
 
             if (
                 detailType === "category"
@@ -268,36 +538,21 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // SUBCATEGORY
-            // ==================================================
-
             if (
                 detailType === "subcategory"
             ) {
 
                 return (
-                    `${detectedProduct.name} is listed under ` +
-                    `the ${detectedProduct.subcategory} subcategory.`
+                    `${detectedProduct.name} is listed under the ` +
+                    `${detectedProduct.subcategory} subcategory.`
                 );
 
             }
 
 
-            // ==================================================
-            // FULL DETAILS
-            // ==================================================
+            return (
 
-            const availability =
-                detectedProduct.stock > 0
-                    ? `In stock (${detectedProduct.stock})`
-                    : "Out of stock";
-
-
-            let fullResponse =
-
-                `Here are the details for ` +
-                `${detectedProduct.name}:\n\n` +
+                `Here are the details for ${detectedProduct.name}:\n\n` +
 
                 `Name: ${detectedProduct.name}\n` +
 
@@ -307,683 +562,48 @@ Do not invent products.
 
                 `Subcategory: ${detectedProduct.subcategory}\n` +
 
-                `Availability: ${availability}\n`;
+                `Availability: ${
+                    detectedProduct.stock > 0
+                        ? `In stock (${detectedProduct.stock})`
+                        : "Out of stock"
+                }\n` +
+
+                (
+                    detectedProduct.description
+                        ? `Description: ${detectedProduct.description}\n`
+                        : ""
+                )
 
-
-            if (
-                detectedProduct.description
-            ) {
-
-                fullResponse +=
-                    `Description: ` +
-                    `${detectedProduct.description}\n`;
-
-            }
-
-
-            fullResponse +=
-                "\nWould you like me to help you find something else?";
-
-
-            return fullResponse;
-
-        }
-
-
-        // ==================================================
-        // STEP 3
-        // ASK OLLAMA FOR FILTERS
-        // ==================================================
-
-        const aiResponse =
-            await ollama.chat({
-
-                model: "llama3.2:3b",
-
-                messages: [
-
-                    {
-
-                        role: "system",
-
-                        content: `
-You are the VELORA Shopping Assistant.
-
-Your job is ONLY to understand the customer's
-shopping request and return JSON.
-
-Return ONLY valid JSON.
-
-Do not use markdown.
-Do not add explanations.
-
-
-==========================================
-AVAILABLE CATEGORIES
-==========================================
-
-Women
-Men
-Accessories
-
-
-==========================================
-AVAILABLE SUBCATEGORIES
-==========================================
-
-Women:
-
-Dresses
-Tops
-Ethnic Wear
-
-Men:
-
-Shirts
-Jeans
-Jackets
-
-Accessories:
-
-Bags
-Wallets
-Watches
-Sunglasses
-
-
-==========================================
-CATEGORY MAPPING
-==========================================
-
-Dresses -> Women
-Tops -> Women
-Ethnic Wear -> Women
-
-Shirts -> Men
-Jeans -> Men
-Jackets -> Men
-
-Bags -> Accessories
-Wallets -> Accessories
-Watches -> Accessories
-Sunglasses -> Accessories
-
-
-==========================================
-NEW ARRIVALS
-==========================================
-
-New Arrivals is NOT a category.
-
-It is a special product filter.
-
-If the customer asks for:
-
-new arrivals
-new arrival
-new products
-latest arrivals
-latest products
-just arrived
-fresh arrivals
-
-set:
-
-"isNewArrival": true
-
-
-==========================================
-PRICE
-==========================================
-
-under 1000
-=> maxPrice = 1000
-
-below 1000
-=> maxPrice = 1000
-
-less than 1000
-=> maxPrice = 1000
-
-above 1000
-=> minPrice = 1000
-
-more than 1000
-=> minPrice = 1000
-
-between 500 and 1500
-=> minPrice = 500
-maxPrice = 1500
-
-
-==========================================
-NORMAL SEARCH
-==========================================
-
-"show me jackets"
-
-category = Men
-subcategory = Jackets
-
-"show me bags"
-
-category = Accessories
-subcategory = Bags
-
-"show me dresses"
-
-category = Women
-subcategory = Dresses
-
-
-==========================================
-RECOMMENDATIONS
-==========================================
-
-Normal requests:
-
-showAll = true
-
-Recommendation requests:
-
-showAll = false
-
-Examples:
-
-"suggest some jackets"
-"recommend some bags"
-"show me some watches"
-"give me 3 dresses"
-
-For "some", "few", "suggest",
-"recommend", or an explicit small number,
-set showAll = false.
-
-
-==========================================
-IMPORTANT
-==========================================
-
-Do NOT invent categories.
-
-Do NOT invent subcategories.
-
-Shoes is NOT available.
-
-Do NOT treat a known product name as a
-subcategory just because it contains a
-subcategory word.
-
-For example:
-
-Utility Jacket
-
-contains "Jacket", but it can be a
-specific product.
-
-Oversized Sunglasses
-
-contains "Sunglasses", but it can be a
-specific product.
-
-
-==========================================
-JSON FORMAT
-==========================================
-
-{
-    "category": null,
-    "subcategory": null,
-    "minPrice": null,
-    "maxPrice": null,
-    "search": null,
-    "productName": null,
-    "detailType": null,
-    "isNewArrival": false,
-    "showAll": false,
-    "general": false,
-    "productDetails": false
-}
-`
-
-                    },
-
-                    {
-
-                        role: "user",
-
-                        content:
-                            cleanMessage
-
-                    }
-
-                ]
-
-            });
-
-
-        console.log(
-            "Ollama intent response:"
-        );
-
-        console.log(
-            aiResponse
-                .message
-                .content
-        );
-
-
-        // ==================================================
-        // STEP 4
-        // PARSE JSON
-        // ==================================================
-
-        let intent;
-
-
-        try {
-
-            let jsonText =
-                aiResponse
-                    .message
-                    .content
-
-                    .replace(
-                        /```json/g,
-                        ""
-                    )
-
-                    .replace(
-                        /```/g,
-                        ""
-                    )
-
-                    .trim();
-
-
-            intent =
-                JSON.parse(
-                    jsonText
-                );
-
-
-        } catch (error) {
-
-            console.error(
-                "Could not parse Ollama JSON:",
-                aiResponse.message.content
             );
-
-
-            return (
-                "Sorry, I couldn't understand your request. " +
-                "Please try again."
-            );
-
-        }
-
-
-        console.log(
-            "Parsed intent:"
-        );
-
-        console.log(
-            intent
-        );
-
-
-        // ==================================================
-        // STEP 5
-        // FORCE NEW ARRIVAL DETECTION
-        // ==================================================
-        //
-        // DO NOT depend on Ollama for this.
-        // ==================================================
-
-        const newArrivalWords = [
-
-            "new arrival",
-            "new arrivals",
-            "new product",
-            "new products",
-            "latest arrival",
-            "latest arrivals",
-            "latest product",
-            "latest products",
-            "just arrived",
-            "fresh arrivals"
-
-        ];
-
-
-        const isNewArrivalRequest =
-            newArrivalWords.some(
-                word =>
-                    lowerMessage.includes(
-                        word
-                    )
-            );
-
-
-        if (
-            isNewArrivalRequest
-        ) {
-
-            intent.isNewArrival =
-                true;
-
-
-            // New arrivals should not accidentally
-            // become category search.
-
-            intent.category =
-                null;
-
-            intent.subcategory =
-                null;
-
-        }
-
-
-        // ==================================================
-        // STEP 6
-        // FORCE KNOWN CATEGORY MAPPING
-        // ==================================================
-
-        if (
-            !isNewArrivalRequest
-        ) {
-
-            if (
-                /\bdresses?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Women";
-
-                intent.subcategory =
-                    "Dresses";
-
-            }
-
-            else if (
-                /\btops?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Women";
-
-                intent.subcategory =
-                    "Tops";
-
-            }
-
-            else if (
-                /\b(ethnic wear|ethnicwear|traditional wear)\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Women";
-
-                intent.subcategory =
-                    "Ethnic Wear";
-
-            }
-
-            else if (
-                /\bshirts?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Men";
-
-                intent.subcategory =
-                    "Shirts";
-
-            }
-
-            else if (
-                /\bjeans?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Men";
-
-                intent.subcategory =
-                    "Jeans";
-
-            }
-
-            else if (
-                /\bjackets?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Men";
-
-                intent.subcategory =
-                    "Jackets";
-
-            }
-
-            else if (
-                /\bbags?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Accessories";
-
-                intent.subcategory =
-                    "Bags";
-
-            }
-
-            else if (
-                /\bwallets?\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Accessories";
-
-                intent.subcategory =
-                    "Wallets";
-
-            }
-
-            else if (
-                /\b(watches|watch)\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Accessories";
-
-                intent.subcategory =
-                    "Watches";
-
-            }
-
-            else if (
-                /\b(sunglasses|sunglass)\b/i.test(
-                    cleanMessage
-                )
-            ) {
-
-                intent.category =
-                    "Accessories";
-
-                intent.subcategory =
-                    "Sunglasses";
-
-            }
-
-        }
-
-
-        // ==================================================
-        // STEP 7
-        // RECOMMENDATION DETECTION
-        // ==================================================
-
-        const recommendationWords = [
-
-            "suggest",
-            "recommend",
-            "some",
-            "few"
-
-        ];
-
-
-        const isRecommendation =
-            recommendationWords.some(
-                word =>
-                    new RegExp(
-                        `\\b${word}\\b`,
-                        "i"
-                    ).test(
-                        cleanMessage
-                    )
-            );
-
-
-        // Explicit numbers <= 3
-        const numberMatch =
-            lowerMessage.match(
-                /\b([1-3])\b/
-            );
-
-
-        const hasSmallNumber =
-            Boolean(
-                numberMatch
-            );
-
-
-        // ==================================================
-        // STEP 8
-        // SHOW ALL
-        // ==================================================
-
-        if (
-            isNewArrivalRequest
-        ) {
-
-            intent.showAll =
-                !isRecommendation &&
-                !hasSmallNumber;
-
-        }
-
-        else if (
-            intent.category ||
-            intent.subcategory ||
-            intent.search ||
-            intent.minPrice !== null ||
-            intent.maxPrice !== null
-        ) {
-
-            intent.showAll =
-                !isRecommendation &&
-                !hasSmallNumber;
 
         }
 
 
         // ==================================================
         // STEP 9
-        // PRODUCT REQUEST IS NOT GENERAL
-        // ==================================================
-
-        if (
-
-            intent.category ||
-
-            intent.subcategory ||
-
-            intent.search ||
-
-            intent.productName ||
-
-            intent.productDetails ||
-
-            intent.isNewArrival ||
-
-            intent.minPrice !== null ||
-
-            intent.maxPrice !== null
-
-        ) {
-
-            intent.general =
-                false;
-
-        }
-
-
-        console.log(
-            "Final corrected intent:"
-        );
-
-        console.log(
-            intent
-        );
-
-
-        // ==================================================
-        // STEP 10
         // SEARCH DATABASE
         // ==================================================
 
         const products =
             await searchProducts({
 
-                category:
-                    intent.category,
+                category,
 
-                subcategory:
-                    intent.subcategory,
+                subcategory,
 
-                minPrice:
-                    intent.minPrice,
+                minPrice,
 
-                maxPrice:
-                    intent.maxPrice,
+                maxPrice,
 
-                search:
-                    intent.search,
+                search: null,
 
                 isNewArrival:
-                    intent.isNewArrival === true
+                    isNewArrivalRequest
 
             });
 
 
-        console.log(
-            "Final database product count:",
-            products.length
-        );
-
-
         // ==================================================
-        // STEP 11
         // NO PRODUCTS
         // ==================================================
 
@@ -993,7 +613,7 @@ JSON FORMAT
         ) {
 
             if (
-                intent.isNewArrival
+                isNewArrivalRequest
             ) {
 
                 return (
@@ -1013,26 +633,32 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 12
-        // SELECT PRODUCTS
+        // STEP 10
+        // HOW MANY PRODUCTS TO SHOW
         // ==================================================
 
         let productsToShow;
 
 
+        // Explicit number
         if (
-            intent.showAll
+            requestedNumber &&
+            requestedNumber > 0
         ) {
 
-            // ALL PRODUCTS
             productsToShow =
-                products;
+                products.slice(
+                    0,
+                    requestedNumber
+                );
 
         }
 
-        else {
+        // Some / suggest / recommend
+        else if (
+            isRecommendation
+        ) {
 
-            // ONLY 3 FOR RECOMMENDATIONS
             productsToShow =
                 products.slice(
                     0,
@@ -1041,27 +667,29 @@ JSON FORMAT
 
         }
 
+        // Normal request = ALL
+        else {
 
-        console.log(
-            "Products selected:",
-            productsToShow.length
-        );
+            productsToShow =
+                products;
+
+        }
 
 
         // ==================================================
-        // STEP 13
-        // CREATE RESPONSE
+        // STEP 11
+        // RESPONSE TITLE
         // ==================================================
 
         let responseText;
 
 
         if (
-            intent.isNewArrival
+            isNewArrivalRequest
         ) {
 
             if (
-                intent.showAll
+                productsToShow.length === products.length
             ) {
 
                 responseText =
@@ -1080,31 +708,26 @@ JSON FORMAT
 
         }
 
+        else if (
+            isRecommendation
+        ) {
+
+            responseText =
+                "Here are some matching products available at VELORA:\n\n";
+
+        }
+
         else {
 
-            if (
-                intent.showAll
-            ) {
-
-                responseText =
-                    `Here are all ${productsToShow.length} ` +
-                    `matching products available at VELORA:\n\n`;
-
-            }
-
-            else {
-
-                responseText =
-                    `Here are some matching products ` +
-                    `available at VELORA:\n\n`;
-
-            }
+            responseText =
+                `Here are all ${productsToShow.length} ` +
+                `matching products available at VELORA:\n\n`;
 
         }
 
 
         // ==================================================
-        // STEP 14
+        // STEP 12
         // DISPLAY PRODUCTS
         // ==================================================
 
@@ -1113,9 +736,7 @@ JSON FORMAT
 
                 const availability =
                     product.stock > 0
-
                         ? `In stock (${product.stock})`
-
                         : "Out of stock";
 
 
@@ -1153,51 +774,6 @@ JSON FORMAT
 
 
 // ======================================================
-// SPECIFIC PRODUCT QUESTION
-// ======================================================
-
-function isSpecificProductQuestion(message) {
-
-    const text =
-        message.toLowerCase();
-
-
-    const detailWords = [
-
-        "price",
-        "cost",
-        "how much",
-
-        "stock",
-        "available",
-        "availability",
-        "in stock",
-        "how many",
-
-        "description",
-        "describe",
-
-        "tell me about",
-        "details",
-        "detail",
-        "information",
-        "info",
-
-        "what category",
-        "what subcategory"
-
-    ];
-
-
-    return detailWords.some(
-        word =>
-            text.includes(word)
-    );
-
-}
-
-
-// ======================================================
 // DETAIL TYPE
 // ======================================================
 
@@ -1207,15 +783,10 @@ function detectDetailType(message) {
         message.toLowerCase();
 
 
-    // PRICE
     if (
-
         text.includes("price") ||
-
         text.includes("cost") ||
-
         text.includes("how much")
-
     ) {
 
         return "price";
@@ -1223,17 +794,11 @@ function detectDetailType(message) {
     }
 
 
-    // STOCK
     if (
-
         text.includes("stock") ||
-
         text.includes("available") ||
-
         text.includes("availability") ||
-
         text.includes("how many")
-
     ) {
 
         return "stock";
@@ -1241,13 +806,9 @@ function detectDetailType(message) {
     }
 
 
-    // DESCRIPTION
     if (
-
         text.includes("description") ||
-
         text.includes("describe")
-
     ) {
 
         return "description";
@@ -1255,7 +816,6 @@ function detectDetailType(message) {
     }
 
 
-    // CATEGORY
     if (
         text.includes("what category")
     ) {
@@ -1265,7 +825,6 @@ function detectDetailType(message) {
     }
 
 
-    // SUBCATEGORY
     if (
         text.includes("what subcategory")
     ) {
@@ -1289,3 +848,4 @@ module.exports = {
     askShoppingAgent
 
 };
+

@@ -1,3 +1,4 @@
+
 const Product = require("../models/product");
 
 // ======================================================
@@ -19,7 +20,7 @@ async function searchProducts({
     minPrice = null,
     maxPrice = null,
     search = null,
-    isNewArrival = null
+    isNewArrival = false
 }) {
 
     try {
@@ -35,7 +36,7 @@ async function searchProducts({
                     ]
                 },
 
-                // Only products currently available
+                // Product must be available
                 {
                     stock: { $gt: 0 }
                 }
@@ -95,7 +96,7 @@ async function searchProducts({
 
 
         // ==================================================
-        // NEW ARRIVAL FILTER
+        // NEW ARRIVALS
         // ==================================================
 
         if (isNewArrival === true) {
@@ -110,7 +111,7 @@ async function searchProducts({
 
 
         // ==================================================
-        // MINIMUM PRICE
+        // MIN PRICE
         // ==================================================
 
         if (
@@ -131,7 +132,7 @@ async function searchProducts({
 
 
         // ==================================================
-        // MAXIMUM PRICE
+        // MAX PRICE
         // ==================================================
 
         if (
@@ -166,7 +167,6 @@ async function searchProducts({
                     String(search).trim()
                 );
 
-
             query.$and.push({
 
                 $or: [
@@ -193,51 +193,37 @@ async function searchProducts({
 
 
         console.log(
-            "MongoDB search query:"
-        );
-
-        console.log(
-            JSON.stringify(
-                query,
-                null,
-                2
-            )
+            "MongoDB search query:",
+            JSON.stringify(query, null, 2)
         );
 
 
         // ==================================================
-        // IMPORTANT:
-        // SORT RESULTS
-        // ==================================================
-        //
-        // createdAt descending gives newest products first.
-        // _id descending makes the ordering deterministic
-        // when createdAt is equal.
-        //
-        // NO random selection.
+        // DETERMINISTIC SORT
         // ==================================================
 
         const products =
             await Product.find(query)
-
                 .select(
                     "name category subcategory description price stock image rating reviews isNewArrival createdAt"
                 )
-
                 .sort({
+
                     createdAt: -1,
+
                     _id: -1
+
                 });
 
 
         console.log(
-            "Products found count:",
+            "Products found:",
             products.length
         );
 
 
         console.log(
-            "Products found:",
+            "Products:",
             products.map(
                 product => product.name
             )
@@ -280,18 +266,11 @@ async function getProductDetails(productName) {
 
 
         const cleanName =
-            String(productName)
-                .trim();
-
-
-        console.log(
-            "Searching exact product:",
-            cleanName
-        );
+            String(productName).trim();
 
 
         // ==================================================
-        // 1. EXACT PRODUCT NAME
+        // EXACT MATCH
         // ==================================================
 
         let product =
@@ -324,15 +303,10 @@ async function getProductDetails(productName) {
 
 
         // ==================================================
-        // 2. PARTIAL PRODUCT NAME
+        // PARTIAL MATCH
         // ==================================================
 
         if (!product) {
-
-            console.log(
-                "Exact product not found. Trying partial search..."
-            );
-
 
             product =
                 await Product.findOne({
@@ -361,17 +335,19 @@ async function getProductDetails(productName) {
                     ]
 
                 })
-
                 .sort({
+
                     createdAt: -1,
+
                     _id: -1
+
                 });
 
         }
 
 
         // ==================================================
-        // 3. WORD-BY-WORD SEARCH
+        // WORD-BY-WORD MATCH
         // ==================================================
 
         if (!product) {
@@ -392,19 +368,12 @@ async function getProductDetails(productName) {
                     words.join(".*");
 
 
-                console.log(
-                    "Trying flexible product search:",
-                    wordRegex
-                );
-
-
                 product =
                     await Product.findOne({
 
                         name: {
 
-                            $regex:
-                                wordRegex,
+                            $regex: wordRegex,
 
                             $options: "i"
 
@@ -425,10 +394,12 @@ async function getProductDetails(productName) {
                         ]
 
                     })
-
                     .sort({
+
                         createdAt: -1,
+
                         _id: -1
+
                     });
 
             }
@@ -475,21 +446,23 @@ async function findProductFromMessage(message) {
 
 
         const cleanMessage =
-            String(message)
-                .trim();
+            String(message).trim();
 
 
         // ==================================================
-        // IMPORTANT:
-        // FIRST TRY TO FIND A PRODUCT BY THE ENTIRE MESSAGE
-        // AFTER REMOVING QUESTION WORDS.
+        // REMOVE QUESTION WORDS
         // ==================================================
 
-        let productText =
+        const productText =
             cleanMessage
 
                 .replace(
                     /\b(how much|what is the price|what's the price|price of|cost of|how many|is|are|available|availability|in stock|stock of|stock|tell me about|give me details|give details|show me details|show details|describe|description of|what category|what subcategory|what is|what's)\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\b(some|few|suggest|recommend|show me|find me|please)\b/gi,
                     " "
                 )
 
@@ -507,9 +480,7 @@ async function findProductFromMessage(message) {
 
 
         if (!productText) {
-
             return null;
-
         }
 
 
@@ -519,13 +490,9 @@ async function findProductFromMessage(message) {
         );
 
 
-        const product =
-            await getProductDetails(
-                productText
-            );
-
-
-        return product;
+        return await getProductDetails(
+            productText
+        );
 
 
     } catch (error) {
@@ -555,3 +522,4 @@ module.exports = {
     findProductFromMessage
 
 };
+
