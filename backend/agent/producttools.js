@@ -553,9 +553,6 @@ async function getProductDetails(productName) {
 }
 
 
-// ======================================================
-// FIND SPECIFIC PRODUCT FROM USER MESSAGE
-// ======================================================
 
 async function findProductFromMessage(message) {
 
@@ -579,18 +576,16 @@ async function findProductFromMessage(message) {
         );
 
 
-        // ==================================================
-        // STEP 1: REMOVE QUESTION PHRASES
-        // ==================================================
 
         let productText =
             cleanMessage;
 
 
         productText =
+
             productText
 
-                // price questions
+                // PRICE QUESTIONS
                 .replace(
                     /\bwhat\s+is\s+the\s+price\s+of\b/gi,
                     " "
@@ -626,7 +621,13 @@ async function findProductFromMessage(message) {
                     " "
                 )
 
-                // stock questions
+                .replace(
+                    /\bhow\s+much\b/gi,
+                    " "
+                )
+
+
+                // STOCK QUESTIONS
                 .replace(
                     /\bhow\s+many\b/gi,
                     " "
@@ -657,7 +658,8 @@ async function findProductFromMessage(message) {
                     " "
                 )
 
-                // general detail questions
+
+                // DETAILS
                 .replace(
                     /\btell\s+me\s+about\b/gi,
                     " "
@@ -698,7 +700,6 @@ async function findProductFromMessage(message) {
                     " "
                 )
 
-                // remove common question words
                 .replace(
                     /\bwhat\s+is\b/gi,
                     " "
@@ -733,9 +734,10 @@ async function findProductFromMessage(message) {
 
         // ==================================================
         // STEP 3: EXACT PRODUCT NAME
+        // CASE-INSENSITIVE
         // ==================================================
 
-        let product =
+        const exactProduct =
             await Product.findOne({
 
                 name: {
@@ -744,34 +746,26 @@ async function findProductFromMessage(message) {
                     $options: "i"
                 },
 
-                $or: [
-                    {
-                        isDeleted: false
-                    },
-                    {
-                        isDeleted: {
-                            $exists: false
-                        }
-                    }
-                ]
+                ...activeProductFilter()
 
             });
 
 
-        if (product) {
+        if (exactProduct) {
 
             console.log(
                 "EXACT PRODUCT FOUND:",
-                product.name
+                exactProduct.name
             );
 
-            return product;
+            return exactProduct;
 
         }
 
 
         // ==================================================
-        // STEP 4: ALL WORDS MUST EXIST IN PRODUCT NAME
+        // STEP 4: ALL WORDS MUST EXIST
+        // CASE-INSENSITIVE
         // ==================================================
 
         const words =
@@ -794,35 +788,21 @@ async function findProductFromMessage(message) {
                 }));
 
 
-            product =
+            const product =
                 await Product.findOne({
 
                     $and: [
 
-                        {
-                            $or: [
-                                {
-                                    isDeleted: false
-                                },
-                                {
-                                    isDeleted: {
-                                        $exists: false
-                                    }
-                                }
-                            ]
-                        },
+                        activeProductFilter(),
 
                         ...wordConditions
 
                     ]
 
                 })
-
                 .sort({
-
                     createdAt: -1,
                     _id: -1
-
                 });
 
 
@@ -841,62 +821,8 @@ async function findProductFromMessage(message) {
 
 
         // ==================================================
-        // STEP 5: FLEXIBLE PRODUCT NAME SEARCH
+        // NO PRODUCT FOUND
         // ==================================================
-
-        if (words.length > 0) {
-
-            const wordRegex =
-                words
-                    .map(word =>
-                        escapeRegex(word)
-                    )
-                    .join(".*");
-
-
-            product =
-                await Product.findOne({
-
-                    name: {
-                        $regex:
-                            wordRegex,
-                        $options: "i"
-                    },
-
-                    $or: [
-                        {
-                            isDeleted: false
-                        },
-                        {
-                            isDeleted: {
-                                $exists: false
-                            }
-                        }
-                    ]
-
-                })
-
-                .sort({
-
-                    createdAt: -1,
-                    _id: -1
-
-                });
-
-
-            if (product) {
-
-                console.log(
-                    "FLEXIBLE PRODUCT FOUND:",
-                    product.name
-                );
-
-                return product;
-
-            }
-
-        }
-
 
         console.log(
             "NO SPECIFIC PRODUCT FOUND"
@@ -917,7 +843,6 @@ async function findProductFromMessage(message) {
     }
 
 }
-
 
 module.exports = {
 
