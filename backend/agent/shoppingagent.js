@@ -108,6 +108,343 @@ Do not invent products.
         }
 
 
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "USER MESSAGE:",
+            cleanMessage
+        );
+
+        console.log(
+            "======================================"
+        );
+
+
+        // ==================================================
+        // CLEAR ENTIRE CART
+        // ==================================================
+
+        const clearCartRequest =
+            isClearCartRequest(
+                cleanMessage
+            );
+
+
+        console.log(
+            "CLEAR CART:",
+            clearCartRequest
+        );
+
+
+        if (clearCartRequest) {
+
+            return {
+
+                response:
+                    "All products have been removed from your cart.",
+
+                action:
+                    "clear_cart"
+
+            };
+
+        }
+
+
+        // ==================================================
+        // DECREASE QUANTITY
+        // ==================================================
+
+        const decreaseCartRequest =
+            isDecreaseCartRequest(
+                cleanMessage
+            );
+
+
+        console.log(
+            "DECREASE QUANTITY:",
+            decreaseCartRequest
+        );
+
+
+        if (decreaseCartRequest) {
+
+            console.log(
+                "DECREASE QUANTITY REQUEST DETECTED"
+            );
+
+
+            const quantity =
+                extractQuantity(
+                    cleanMessage,
+                    "decrease"
+                );
+
+
+            const productSearchText =
+                extractProductNameFromQuantityMessage(
+                    cleanMessage
+                );
+
+
+            console.log(
+                "DECREASE QUANTITY:",
+                quantity
+            );
+
+
+            console.log(
+                "PRODUCT SEARCH:",
+                productSearchText
+            );
+
+
+            let detectedProduct =
+                null;
+
+
+            if (productSearchText) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        productSearchText
+                    );
+
+            }
+
+
+            if (!detectedProduct) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        cleanMessage
+                    );
+
+            }
+
+
+            console.log(
+                "DECREASE DETECTED PRODUCT:",
+                detectedProduct
+                    ? detectedProduct.name
+                    : "NONE"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+
+                    response:
+                        "Sorry, I couldn't find that product in VELORA.",
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const latestProduct =
+                await getProductDetails(
+                    detectedProduct.name
+                );
+
+
+            if (!latestProduct) {
+
+                return {
+
+                    response:
+                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            return {
+
+                response:
+                    `${latestProduct.name} quantity has been decreased by ${quantity}.`,
+
+                action:
+                    "decrease_quantity",
+
+                quantity,
+
+                product:
+                    latestProduct
+
+            };
+
+        }
+
+
+        // ==================================================
+        // INCREASE QUANTITY
+        // ==================================================
+
+        const increaseCartRequest =
+            isIncreaseCartRequest(
+                cleanMessage
+            );
+
+
+        console.log(
+            "INCREASE QUANTITY:",
+            increaseCartRequest
+        );
+
+
+        if (increaseCartRequest) {
+
+            console.log(
+                "INCREASE QUANTITY REQUEST DETECTED"
+            );
+
+
+            const quantity =
+                extractQuantity(
+                    cleanMessage,
+                    "increase"
+                );
+
+
+            const productSearchText =
+                extractProductNameFromQuantityMessage(
+                    cleanMessage
+                );
+
+
+            console.log(
+                "INCREASE QUANTITY:",
+                quantity
+            );
+
+
+            console.log(
+                "PRODUCT SEARCH:",
+                productSearchText
+            );
+
+
+            let detectedProduct =
+                null;
+
+
+            if (productSearchText) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        productSearchText
+                    );
+
+            }
+
+
+            if (!detectedProduct) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        cleanMessage
+                    );
+
+            }
+
+
+            console.log(
+                "INCREASE DETECTED PRODUCT:",
+                detectedProduct
+                    ? detectedProduct.name
+                    : "NONE"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+
+                    response:
+                        "Sorry, I couldn't find that product in VELORA.",
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const latestProduct =
+                await getProductDetails(
+                    detectedProduct.name
+                );
+
+
+            if (!latestProduct) {
+
+                return {
+
+                    response:
+                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const stock =
+                Number(
+                    latestProduct.stock
+                );
+
+
+            if (
+                !Number.isFinite(stock) ||
+                stock <= 0
+            ) {
+
+                return {
+
+                    response:
+                        `${latestProduct.name} is currently out of stock.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            return {
+
+                response:
+                    `${latestProduct.name} quantity has been increased by ${quantity}.`,
+
+                action:
+                    "increase_quantity",
+
+                quantity,
+
+                product:
+                    latestProduct
+
+            };
+
+        }
+
+
         // ==================================================
         // ADD TO CART
         // ==================================================
@@ -119,21 +456,8 @@ Do not invent products.
 
 
         console.log(
-            "======================================"
-        );
-
-        console.log(
-            "USER MESSAGE:",
-            cleanMessage
-        );
-
-        console.log(
             "ADD TO CART:",
             addToCartRequest
-        );
-
-        console.log(
-            "======================================"
         );
 
 
@@ -144,10 +468,22 @@ Do not invent products.
             );
 
 
+            const quantity =
+                extractAddQuantity(
+                    cleanMessage
+                );
+
+
             const productSearchText =
                 extractProductNameFromCartMessage(
                     cleanMessage
                 );
+
+
+            console.log(
+                "ADD QUANTITY:",
+                quantity
+            );
 
 
             console.log(
@@ -248,6 +584,23 @@ Do not invent products.
             }
 
 
+            if (
+                quantity > stock
+            ) {
+
+                return {
+
+                    response:
+                        `Only ${stock} ${latestProduct.name} are available in stock.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
             console.log(
                 "ADDING PRODUCT:",
                 latestProduct.name
@@ -262,306 +615,10 @@ Do not invent products.
                 action:
                     "add_to_cart",
 
-                product:
-                    latestProduct
-
-            };
-
-        }
-
-
-        // ==================================================
-        // INCREASE CART QUANTITY
-        // ==================================================
-
-        const increaseCartRequest =
-            isIncreaseCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "INCREASE QUANTITY:",
-            increaseCartRequest
-        );
-
-
-        if (increaseCartRequest) {
-
-            console.log(
-                "INCREASE QUANTITY REQUEST DETECTED"
-            );
-
-
-            const productSearchText =
-                extractProductNameFromQuantityMessage(
-                    cleanMessage
-                );
-
-
-            console.log(
-                "QUANTITY PRODUCT SEARCH:",
-                productSearchText
-            );
-
-
-            let detectedProduct =
-                null;
-
-
-            if (productSearchText) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (!detectedProduct) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-            }
-
-
-            console.log(
-                "INCREASE DETECTED PRODUCT:",
-                detectedProduct
-                    ? detectedProduct.name
-                    : "NONE"
-            );
-
-
-            if (!detectedProduct) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProduct =
-                await getProductDetails(
-                    detectedProduct.name
-                );
-
-
-            if (!latestProduct) {
-
-                return {
-
-                    response:
-                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const stock =
-                Number(
-                    latestProduct.stock
-                );
-
-
-            if (
-                !Number.isFinite(stock) ||
-                stock <= 0
-            ) {
-
-                return {
-
-                    response:
-                        `${latestProduct.name} is currently out of stock.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            return {
-
-                response:
-                    `${latestProduct.name} quantity has been increased.`,
-
-                action:
-                    "increase_quantity",
+                quantity,
 
                 product:
                     latestProduct
-
-            };
-
-        }
-
-
-        // ==================================================
-        // DECREASE CART QUANTITY
-        // ==================================================
-
-        const decreaseCartRequest =
-            isDecreaseCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "DECREASE QUANTITY:",
-            decreaseCartRequest
-        );
-
-
-        if (decreaseCartRequest) {
-
-            console.log(
-                "DECREASE QUANTITY REQUEST DETECTED"
-            );
-
-
-            const productSearchText =
-                extractProductNameFromQuantityMessage(
-                    cleanMessage
-                );
-
-
-            console.log(
-                "QUANTITY PRODUCT SEARCH:",
-                productSearchText
-            );
-
-
-            let detectedProduct =
-                null;
-
-
-            if (productSearchText) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (!detectedProduct) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-            }
-
-
-            console.log(
-                "DECREASE DETECTED PRODUCT:",
-                detectedProduct
-                    ? detectedProduct.name
-                    : "NONE"
-            );
-
-
-            if (!detectedProduct) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProduct =
-                await getProductDetails(
-                    detectedProduct.name
-                );
-
-
-            if (!latestProduct) {
-
-                return {
-
-                    response:
-                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            return {
-
-                response:
-                    `${latestProduct.name} quantity has been decreased.`,
-
-                action:
-                    "decrease_quantity",
-
-                product:
-                    latestProduct
-
-            };
-
-        }
-
-
-        // ==================================================
-        // CLEAR ENTIRE CART
-        // ==================================================
-
-        const clearCartRequest =
-            isClearCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "CLEAR CART:",
-            clearCartRequest
-        );
-
-
-        if (clearCartRequest) {
-
-            console.log(
-                "CLEAR CART REQUEST DETECTED"
-            );
-
-
-            return {
-
-                response:
-                    "All products have been removed from your cart.",
-
-                action:
-                    "clear_cart"
 
             };
 
@@ -586,21 +643,10 @@ Do not invent products.
 
         if (removeFromCartRequest) {
 
-            console.log(
-                "REMOVE FROM CART REQUEST DETECTED"
-            );
-
-
             const productSearchText =
                 extractProductNameFromRemoveMessage(
                     cleanMessage
                 );
-
-
-            console.log(
-                "REMOVE PRODUCT SEARCH TEXT:",
-                productSearchText
-            );
 
 
             let detectedProduct =
@@ -625,14 +671,6 @@ Do not invent products.
                     );
 
             }
-
-
-            console.log(
-                "REMOVE DETECTED PRODUCT:",
-                detectedProduct
-                    ? detectedProduct.name
-                    : "NONE"
-            );
 
 
             if (!detectedProduct) {
@@ -1536,6 +1574,191 @@ JSON FORMAT:
 
 
 // ==================================================
+// EXTRACT ADD QUANTITY
+// ==================================================
+
+function extractAddQuantity(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase();
+
+
+    // add one more
+    if (
+        /\badd\s+one\s+more\b/i.test(
+            text
+        )
+    ) {
+
+        return 1;
+
+    }
+
+
+    // add another
+    if (
+        /\badd\s+another\b/i.test(
+            text
+        )
+    ) {
+
+        return 1;
+
+    }
+
+
+    // add 3
+    const numberMatch =
+        text.match(
+            /\badd\s+(\d+)\b/i
+        );
+
+
+    if (
+        numberMatch
+    ) {
+
+        const number =
+            Number(
+                numberMatch[1]
+            );
+
+
+        if (
+            Number.isFinite(number) &&
+            number > 0
+        ) {
+
+            return Math.floor(
+                number
+            );
+
+        }
+
+    }
+
+
+    return 1;
+
+}
+
+
+// ==================================================
+// EXTRACT INCREASE / DECREASE QUANTITY
+// ==================================================
+
+function extractQuantity(
+    message,
+    type
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase();
+
+
+    // increase by 3
+    // decrease by 3
+    const byMatch =
+        text.match(
+            new RegExp(
+                `${type}[^0-9]{0,30}by\\s+(\\d+)`,
+                "i"
+            )
+        );
+
+
+    if (
+        byMatch
+    ) {
+
+        const number =
+            Number(
+                byMatch[1]
+            );
+
+
+        if (
+            Number.isFinite(number) &&
+            number > 0
+        ) {
+
+            return Math.floor(
+                number
+            );
+
+        }
+
+    }
+
+
+    // increase 3
+    // decrease 3
+    const directMatch =
+        text.match(
+            new RegExp(
+                `\\b${type}\\s+(\\d+)`,
+                "i"
+            )
+        );
+
+
+    if (
+        directMatch
+    ) {
+
+        const number =
+            Number(
+                directMatch[1]
+            );
+
+
+        if (
+            Number.isFinite(number) &&
+            number > 0
+        ) {
+
+            return Math.floor(
+                number
+            );
+
+        }
+
+    }
+
+
+    // add one more / one less
+    if (
+        /\bone\s+more\b/i.test(
+            text
+        )
+    ) {
+
+        return 1;
+
+    }
+
+
+    if (
+        /\bone\s+less\b/i.test(
+            text
+        )
+    ) {
+
+        return 1;
+
+    }
+
+
+    return 1;
+
+}
+
+
+// ==================================================
 // EXTRACT ADD PRODUCT
 // ==================================================
 
@@ -1551,6 +1774,28 @@ function extractProductNameFromCartMessage(
     text =
         text.replace(
             /^(please\s+)?(add|put|place)\s+/i,
+            ""
+        );
+
+
+    // Remove quantity after "add"
+    text =
+        text.replace(
+            /^\d+\s+/,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^one\s+more\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^another\s+/i,
             ""
         );
 
@@ -1668,6 +1913,22 @@ function extractProductNameFromQuantityMessage(
         );
 
 
+    // Remove "by 2"
+    text =
+        text.replace(
+            /\s+by\s+\d+\s*$/i,
+            ""
+        );
+
+
+    // Remove direct quantity
+    text =
+        text.replace(
+            /^\d+\s+/,
+            ""
+        );
+
+
     text =
         text.replace(
             /\s+(quantity|qty)\s*$/i,
@@ -1702,6 +1963,14 @@ function isAddToCartRequest(
 
 
     const patterns = [
+
+        /\badd\s+\d+\b/i,
+
+        /\badd\s+\d+\s+.*\b(cart|basket)\b/i,
+
+        /\badd\s+one\s+more\b/i,
+
+        /\badd\s+another\b/i,
 
         /\badd\b.*\bto\s+(my\s+)?cart\b/i,
 
@@ -1744,23 +2013,17 @@ function isIncreaseCartRequest(
 
     const patterns = [
 
-        /\bincrease\b.*\bquantity\b/i,
-
-        /\bincrease\b.*\bcart\b/i,
-
-        /\bincrease\b.*\bitem\b/i,
-
-        /\badd\s+one\s+more\b/i,
-
-        /\bone\s+more\b/i,
-
-        /\badd\s+another\b/i,
-
-        /\badd\b.*\bmore\b/i,
+        /\bincrease\b/i,
 
         /\bincrement\b/i,
 
-        /\braise\b.*\bquantity\b/i
+        /\braise\b.*\bquantity\b/i,
+
+        /\badd\s+one\s+more\b/i,
+
+        /\badd\s+another\b/i,
+
+        /\bone\s+more\b/i
 
     ];
 
@@ -1789,23 +2052,17 @@ function isDecreaseCartRequest(
 
     const patterns = [
 
-        /\bdecrease\b.*\bquantity\b/i,
+        /\bdecrease\b/i,
 
-        /\bdecrease\b.*\bcart\b/i,
-
-        /\bdecrease\b.*\bitem\b/i,
-
-        /\breduce\b.*\bquantity\b/i,
-
-        /\breduce\b.*\bcart\b/i,
-
-        /\bremove\s+one\b/i,
-
-        /\bone\s+less\b/i,
+        /\breduce\b/i,
 
         /\bdecrement\b/i,
 
-        /\blower\b.*\bquantity\b/i
+        /\blower\b.*\bquantity\b/i,
+
+        /\bremove\s+one\b/i,
+
+        /\bone\s+less\b/i
 
     ];
 
