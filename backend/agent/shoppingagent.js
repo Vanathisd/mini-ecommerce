@@ -14,17 +14,10 @@ const ollama = new Ollama({
 });
 
 
-// ======================================================
-// MAIN SHOPPING AGENT
-// ======================================================
-
 async function askShoppingAgent(message) {
 
     try {
 
-        // ==================================================
-        // CLEAN MESSAGE
-        // ==================================================
 
         const cleanMessage =
             String(message || "")
@@ -199,10 +192,32 @@ Do not invent products.
                 detailType
             );
 
+           
 
-            // ==================================================
-            // PRICE
-            // ==================================================
+            if (
+                detailType === "price_stock"
+            ) {
+
+                const stock =
+                    Number(latestProduct.stock);
+
+
+                const availability =
+                    Number.isFinite(stock) &&
+                    stock > 0
+                        ? `In stock (${stock})`
+                        : "Out of stock";
+
+
+                return (
+                    `${latestProduct.name} costs ` +
+                    `₹${latestProduct.price} and is ` +
+                    `${availability.toLowerCase()}.`
+                );
+
+            }
+
+            
 
             if (
                 detailType === "price"
@@ -1161,11 +1176,6 @@ function isSpecificProductQuestion(message) {
 
 }
 
-
-// ======================================================
-// DETAIL TYPE
-// ======================================================
-
 function detectDetailType(message) {
 
     const text =
@@ -1173,86 +1183,65 @@ function detectDetailType(message) {
             .toLowerCase();
 
 
-    // ==================================================
-    // PRICE
-    // ==================================================
-
-    if (
-
+    const asksPrice =
         text.includes("price") ||
         text.includes("cost") ||
-        text.includes("how much")
-
-    ) {
-
-        return "price";
-
-    }
+        text.includes("how much");
 
 
-    // ==================================================
-    // STOCK
-    // ==================================================
-
-    if (
-
+    const asksStock =
         text.includes("stock") ||
         text.includes("available") ||
         text.includes("availability") ||
         text.includes("how many") ||
-        text.includes("in stock")
-
-    ) {
-
-        return "stock";
-
-    }
+        text.includes("in stock");
 
 
-    // ==================================================
-    // DESCRIPTION
-    // ==================================================
-
-    if (
-
+    const asksDescription =
         text.includes("description") ||
-        text.includes("describe")
+        text.includes("describe");
 
-    ) {
 
+    const asksCategory =
+        text.includes("what category");
+
+
+    const asksSubcategory =
+        text.includes("what subcategory");
+
+
+    // Both price + stock
+    if (asksPrice && asksStock) {
+        return "price_stock";
+    }
+
+
+    if (asksPrice) {
+        return "price";
+    }
+
+
+    if (asksStock) {
+        return "stock";
+    }
+
+
+    if (asksDescription) {
         return "description";
-
     }
 
 
-    // ==================================================
-    // CATEGORY
-    // ==================================================
-
-    if (
-        text.includes("what category")
-    ) {
-
+    if (asksCategory) {
         return "category";
-
     }
 
 
-    // ==================================================
-    // SUBCATEGORY
-    // ==================================================
-
-    if (
-        text.includes("what subcategory")
-    ) {
-
+    if (asksSubcategory) {
         return "subcategory";
-
     }
 
 
     return "full";
-
 }
 
 

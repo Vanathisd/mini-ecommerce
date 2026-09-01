@@ -1,11 +1,17 @@
 const Product = require("../models/product");
 
 
-
 function escapeRegex(text) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function normalizeText(text) {
+    return String(text || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
 
 
 function activeProductFilter() {
@@ -42,6 +48,7 @@ async function searchProducts({
         const query = {
             $and: [
                 activeProductFilter(),
+
                 {
                     stock: {
                         $gt: 0
@@ -111,13 +118,13 @@ async function searchProducts({
 
 
         // ==================================================
-        // MIN PRICE
+        // PRICE
         // ==================================================
 
         if (
             minPrice !== null &&
             minPrice !== undefined &&
-            !Number.isNaN(Number(minPrice))
+            Number.isFinite(Number(minPrice))
         ) {
 
             query.$and.push({
@@ -129,14 +136,10 @@ async function searchProducts({
         }
 
 
-        // ==================================================
-        // MAX PRICE
-        // ==================================================
-
         if (
             maxPrice !== null &&
             maxPrice !== undefined &&
-            !Number.isNaN(Number(maxPrice))
+            Number.isFinite(Number(maxPrice))
         ) {
 
             query.$and.push({
@@ -149,7 +152,7 @@ async function searchProducts({
 
 
         // ==================================================
-        // KEYWORD SEARCH
+        // SEARCH
         // ==================================================
 
         if (
@@ -184,23 +187,11 @@ async function searchProducts({
         }
 
 
-        // ==================================================
-        // DEBUG QUERY
-        // ==================================================
-
         console.log(
             "MongoDB search query:",
-            JSON.stringify(
-                query,
-                null,
-                2
-            )
+            JSON.stringify(query, null, 2)
         );
 
-
-        // ==================================================
-        // DATABASE SEARCH
-        // ==================================================
 
         const products =
             await Product.find(query)
@@ -221,17 +212,15 @@ async function searchProducts({
 
         console.log(
             "Products:",
-            products.map(
-                product => ({
-                    name: product.name,
-                    stock: product.stock
-                })
-            )
+            products.map(product => ({
+                name: product.name,
+                price: product.price,
+                stock: product.stock
+            }))
         );
 
 
         return products;
-
 
     } catch (error) {
 
@@ -259,9 +248,7 @@ async function getProductDetails(productName) {
             !productName ||
             String(productName).trim() === ""
         ) {
-
             return null;
-
         }
 
 
@@ -278,7 +265,7 @@ async function getProductDetails(productName) {
 
 
         // ==================================================
-        // EXACT NAME MATCH
+        // EXACT MATCH
         // ==================================================
 
         let product =
@@ -300,6 +287,8 @@ async function getProductDetails(productName) {
             console.log(
                 "EXACT PRODUCT FOUND:",
                 product.name,
+                "PRICE:",
+                product.price,
                 "STOCK:",
                 product.stock
             );
@@ -310,29 +299,24 @@ async function getProductDetails(productName) {
 
 
         // ==================================================
-        // FLEXIBLE WORD MATCH
+        // WORD MATCH
         // ==================================================
 
         const words =
-            cleanName
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(
-                    word =>
-                        escapeRegex(word)
-                );
+            normalizeText(cleanName)
+                .split(" ")
+                .filter(Boolean);
 
 
         if (words.length > 0) {
 
             const wordConditions =
                 words.map(word => ({
-
                     name: {
-                        $regex: word,
+                        $regex:
+                            escapeRegex(word),
                         $options: "i"
                     }
-
                 }));
 
 
@@ -356,16 +340,27 @@ async function getProductDetails(productName) {
         }
 
 
-        console.log(
-            "Product detail result:",
-            product
-                ? `${product.name} | STOCK: ${product.stock}`
-                : "NOT FOUND"
-        );
+        if (product) {
+
+            console.log(
+                "WORD MATCH PRODUCT FOUND:",
+                product.name,
+                "PRICE:",
+                product.price,
+                "STOCK:",
+                product.stock
+            );
+
+        } else {
+
+            console.log(
+                "Product detail result: NOT FOUND"
+            );
+
+        }
 
 
         return product;
-
 
     } catch (error) {
 
@@ -382,7 +377,201 @@ async function getProductDetails(productName) {
 
 
 // ======================================================
-// FIND PRODUCT FROM USER MESSAGE
+// LEVENSHTEIN DISTANCE
+// Used for small spelling mistakes
+// ======================================================
+
+function levenshtein(a, b) {
+
+    const matrix = [];
+
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+
+        for (let j = 1; j <= a.length; j++) {
+
+            if (
+                b.charAt(i - 1) ===
+                a.charAt(j - 1)
+            ) {
+
+                matrix[i][j] =
+                    matrix[i - 1][j - 1];
+
+            } else {
+
+                matrix[i][j] =
+                    Math.min(
+
+                        matrix[i - 1][j] + 1,
+
+                        matrix[i][j - 1] + 1,
+
+                        matrix[i - 1][j - 1] + 1
+
+                    );
+
+            }
+
+        }
+
+    }
+
+    return matrix[b.length][a.length];
+
+}
+
+
+// ======================================================
+// CHECK SIMILAR WORD
+// ======================================================
+
+function isSimilarWord(input, databaseWord) {
+
+    const a =
+        normalizeText(input);
+
+    const b =
+        normalizeText(databaseWord);
+
+
+    if (!a || !b) {
+        return false;
+    }
+
+
+    if (a === b) {
+        return true;
+    }
+
+
+    // Very short words should not be fuzzy matched
+    if (a.length <= 3 || b.length <= 3) {
+        return false;
+    }
+
+
+    const distance =
+        levenshtein(a, b);
+
+
+    // Allow 1 typo for normal words
+    if (Math.max(a.length, b.length) <= 8) {
+        return distance <= 1;
+    }
+
+
+    // Allow up to 2 typos for longer words
+    return distance <= 2;
+
+}
+
+
+// ======================================================
+// FIND PRODUCT USING FUZZY WORD MATCH
+// ======================================================
+
+async function findFuzzyProduct(productText) {
+
+    const products =
+        await Product.find({
+            ...activeProductFilter()
+        })
+        .select(
+            "name category subcategory description price stock image rating reviews isNewArrival createdAt"
+        );
+
+
+    const inputWords =
+        normalizeText(productText)
+            .split(" ")
+            .filter(Boolean);
+
+
+    if (inputWords.length === 0) {
+        return null;
+    }
+
+
+    let bestProduct = null;
+    let bestScore = 0;
+
+
+    for (const product of products) {
+
+        const productWords =
+            normalizeText(product.name)
+                .split(" ")
+                .filter(Boolean);
+
+
+        let matchedWords = 0;
+
+
+        for (const inputWord of inputWords) {
+
+            const matched =
+                productWords.some(
+                    productWord =>
+                        isSimilarWord(
+                            inputWord,
+                            productWord
+                        )
+                );
+
+
+            if (matched) {
+                matchedWords++;
+            }
+
+        }
+
+
+        const score =
+            matchedWords / inputWords.length;
+
+
+        if (
+            score > bestScore &&
+            score >= 0.6
+        ) {
+
+            bestScore = score;
+            bestProduct = product;
+
+        }
+
+    }
+
+
+    if (bestProduct) {
+
+        console.log(
+            "FUZZY PRODUCT FOUND:",
+            bestProduct.name,
+            "PRICE:",
+            bestProduct.price,
+            "STOCK:",
+            bestProduct.stock
+        );
+
+    }
+
+
+    return bestProduct;
+
+}
+
+
+// ======================================================
+// FIND PRODUCT FROM MESSAGE
 // ======================================================
 
 async function findProductFromMessage(message) {
@@ -416,29 +605,25 @@ async function findProductFromMessage(message) {
 
 
         // ==================================================
-        // REMOVE PRICE QUESTION WORDS
+        // REMOVE QUESTION PHRASES
         // ==================================================
 
         productText =
             productText
 
+                // Price
                 .replace(
                     /\bwhat\s+is\s+the\s+price\s+of\b/gi,
                     " "
                 )
 
                 .replace(
-                    /\bwhat\s+is\s+price\s+of\b/gi,
+                    /\bwhat\s+is\s+the\s+cost\s+of\b/gi,
                     " "
                 )
 
                 .replace(
                     /\bwhat's\s+the\s+price\s+of\b/gi,
-                    " "
-                )
-
-                .replace(
-                    /\bwhat\s+is\s+the\s+cost\s+of\b/gi,
                     " "
                 )
 
@@ -458,23 +643,16 @@ async function findProductFromMessage(message) {
                 )
 
                 .replace(
-                    /\bhow\s+much\b/gi,
-                    " "
-                );
-
-
-        // ==================================================
-        // REMOVE STOCK QUESTION WORDS
-        // ==================================================
-
-        productText =
-            productText
-
-                .replace(
-                    /\bhow\s+many\b/gi,
+                    /\bhow\s+much\s+is\b/gi,
                     " "
                 )
 
+                .replace(
+                    /\bhow\s+much\b/gi,
+                    " ")
+
+
+                // Availability
                 .replace(
                     /\bis\s+available\b/gi,
                     " "
@@ -492,6 +670,11 @@ async function findProductFromMessage(message) {
 
                 .replace(
                     /\bis\s+this\s+available\b/gi,
+                    " "
+                )
+
+                .replace(
+                    /\bavailable\b/gi,
                     " "
                 )
 
@@ -517,17 +700,10 @@ async function findProductFromMessage(message) {
 
                 .replace(
                     /\bdo\s+you\s+have\s+any\b/gi,
-                    " "
-                );
+                    " ")
 
 
-        // ==================================================
-        // REMOVE DETAIL QUESTION WORDS
-        // ==================================================
-
-        productText =
-            productText
-
+                // Details
                 .replace(
                     /\btell\s+me\s+about\b/gi,
                     " "
@@ -539,17 +715,7 @@ async function findProductFromMessage(message) {
                 )
 
                 .replace(
-                    /\bgive\s+me\s+details\b/gi,
-                    " "
-                )
-
-                .replace(
                     /\bshow\s+me\s+details\s+about\b/gi,
-                    " "
-                )
-
-                .replace(
-                    /\bshow\s+me\s+details\b/gi,
                     " "
                 )
 
@@ -604,7 +770,7 @@ async function findProductFromMessage(message) {
         // EXACT PRODUCT NAME
         // ==================================================
 
-        const exactProduct =
+        let product =
             await Product.findOne({
 
                 name: {
@@ -618,27 +784,29 @@ async function findProductFromMessage(message) {
             });
 
 
-        if (exactProduct) {
+        if (product) {
 
             console.log(
                 "EXACT PRODUCT FOUND:",
-                exactProduct.name,
+                product.name,
+                "PRICE:",
+                product.price,
                 "STOCK:",
-                exactProduct.stock
+                product.stock
             );
 
-            return exactProduct;
+            return product;
 
         }
 
 
         // ==================================================
-        // ALL WORDS MUST EXIST IN PRODUCT NAME
+        // WORD MATCH
         // ==================================================
 
         const words =
-            productText
-                .split(/\s+/)
+            normalizeText(productText)
+                .split(" ")
                 .filter(Boolean);
 
 
@@ -646,17 +814,15 @@ async function findProductFromMessage(message) {
 
             const wordConditions =
                 words.map(word => ({
-
                     name: {
                         $regex:
                             escapeRegex(word),
                         $options: "i"
                     }
-
                 }));
 
 
-            const product =
+            product =
                 await Product.findOne({
 
                     $and: [
@@ -679,6 +845,8 @@ async function findProductFromMessage(message) {
                 console.log(
                     "ALL-WORD PRODUCT FOUND:",
                     product.name,
+                    "PRICE:",
+                    product.price,
                     "STOCK:",
                     product.stock
                 );
@@ -691,8 +859,26 @@ async function findProductFromMessage(message) {
 
 
         // ==================================================
-        // NO SPECIFIC PRODUCT FOUND
+        // FUZZY MATCH
+        // Handles:
+        //
+        // avaitor -> aviator
+        // sunglasess -> sunglasses
+        // shrit -> shirt
         // ==================================================
+
+        product =
+            await findFuzzyProduct(
+                productText
+            );
+
+
+        if (product) {
+
+            return product;
+
+        }
+
 
         console.log(
             "NO SPECIFIC PRODUCT FOUND"
@@ -700,7 +886,6 @@ async function findProductFromMessage(message) {
 
 
         return null;
-
 
     } catch (error) {
 
