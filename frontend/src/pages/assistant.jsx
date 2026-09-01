@@ -74,6 +74,34 @@ function Assistant() {
 
 
     // ==================================================
+    // GET PRODUCT ID
+    // ==================================================
+
+    const getProductId = (
+        product
+    ) => {
+
+        if (!product) {
+            return null;
+        }
+
+
+        const id =
+            product._id ||
+            product.id;
+
+
+        if (!id) {
+            return null;
+        }
+
+
+        return String(id);
+
+    };
+
+
+    // ==================================================
     // CHAT KEY
     // ==================================================
 
@@ -140,9 +168,7 @@ function Assistant() {
 
 
             if (
-                Array.isArray(
-                    parsedChat
-                ) &&
+                Array.isArray(parsedChat) &&
                 parsedChat.length > 0
             ) {
 
@@ -186,18 +212,12 @@ function Assistant() {
     useEffect(() => {
 
         if (!user?.id) {
-
             return;
-
         }
 
 
-        if (
-            messages.length === 0
-        ) {
-
+        if (messages.length === 0) {
             return;
-
         }
 
 
@@ -352,6 +372,7 @@ function Assistant() {
 
 
         cartText +=
+
             `Total: ₹${total.toLocaleString("en-IN")}`;
 
 
@@ -441,7 +462,12 @@ function Assistant() {
         try {
 
             console.log(
-                "Sending message to AI:",
+                "======================================"
+            );
+
+
+            console.log(
+                "CHATBOT USER MESSAGE:",
                 userMessage
             );
 
@@ -481,7 +507,7 @@ function Assistant() {
 
 
             console.log(
-                "AI response:",
+                "CHATBOT SERVER RESPONSE:",
                 data
             );
 
@@ -515,7 +541,12 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "ADDING TO CART:",
+                    "ACTION: ADD TO CART"
+                );
+
+
+                console.log(
+                    "PRODUCT:",
                     data.product
                 );
 
@@ -562,30 +593,45 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "INCREASING QUANTITY:",
-                    data.product
+                    "ACTION: INCREASE QUANTITY"
                 );
 
 
                 const productId =
-                    data.product._id ||
-                    data.product.id;
+                    getProductId(
+                        data.product
+                    );
 
 
-                const exists =
-                    cart.some(
+                console.log(
+                    "AI PRODUCT ID:",
+                    productId
+                );
+
+
+                console.log(
+                    "CURRENT CART:",
+                    cart
+                );
+
+
+                const cartProduct =
+                    cart.find(
 
                         item =>
 
-                            (
-                                item._id ||
-                                item.id
-                            ) === productId
+                            getProductId(item) ===
+                            productId
 
                     );
 
 
-                if (!exists) {
+                if (!cartProduct) {
+
+                    console.log(
+                        "PRODUCT NOT FOUND IN CART"
+                    );
+
 
                     setMessages(
                         prev => [
@@ -608,6 +654,12 @@ function Assistant() {
                 }
 
                 else {
+
+                    console.log(
+                        "PRODUCT FOUND IN CART:",
+                        cartProduct
+                    );
+
 
                     increaseQuantity(
                         productId
@@ -653,30 +705,57 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "DECREASING QUANTITY:",
-                    data.product
+                    "ACTION: DECREASE QUANTITY"
                 );
 
 
                 const productId =
-                    data.product._id ||
-                    data.product.id;
+                    getProductId(
+                        data.product
+                    );
 
 
-                const exists =
-                    cart.some(
+                console.log(
+                    "AI PRODUCT:",
+                    data.product
+                );
+
+
+                console.log(
+                    "AI PRODUCT ID:",
+                    productId
+                );
+
+
+                console.log(
+                    "CURRENT CART:",
+                    cart
+                );
+
+
+                const cartProduct =
+                    cart.find(
 
                         item =>
 
-                            (
-                                item._id ||
-                                item.id
-                            ) === productId
+                            getProductId(item) ===
+                            productId
 
                     );
 
 
-                if (!exists) {
+                console.log(
+                    "MATCHED CART PRODUCT:",
+                    cartProduct
+                );
+
+
+                if (!cartProduct) {
+
+                    console.log(
+                        "PRODUCT NOT FOUND IN CART"
+                    );
+
 
                     setMessages(
                         prev => [
@@ -700,28 +779,81 @@ function Assistant() {
 
                 else {
 
-                    decreaseQuantity(
-                        productId
+                    const currentQuantity =
+                        Number(
+                            cartProduct.quantity || 1
+                        );
+
+
+                    console.log(
+                        "CURRENT QUANTITY:",
+                        currentQuantity
                     );
 
 
-                    setMessages(
-                        prev => [
+                    // ------------------------------------------
+                    // QUANTITY IS 1
+                    // ------------------------------------------
 
-                            ...prev,
+                    if (
+                        currentQuantity <= 1
+                    ) {
 
-                            {
+                        decreaseQuantity(
+                            productId
+                        );
 
-                                sender:
-                                    "bot",
 
-                                text:
-                                    `➖ ${data.product.name} quantity has been decreased.`
+                        setMessages(
+                            prev => [
 
-                            }
+                                ...prev,
 
-                        ]
-                    );
+                                {
+
+                                    sender:
+                                        "bot",
+
+                                    text:
+                                        `🗑️ ${data.product.name} quantity reached 0, so it was removed from your cart.`
+
+                                }
+
+                            ]
+                        );
+
+                    }
+
+                    // ------------------------------------------
+                    // QUANTITY GREATER THAN 1
+                    // ------------------------------------------
+
+                    else {
+
+                        decreaseQuantity(
+                            productId
+                        );
+
+
+                        setMessages(
+                            prev => [
+
+                                ...prev,
+
+                                {
+
+                                    sender:
+                                        "bot",
+
+                                    text:
+                                        `➖ ${data.product.name} quantity has been decreased.`
+
+                                }
+
+                            ]
+                        );
+
+                    }
 
                 }
 
@@ -744,14 +876,14 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "REMOVING FROM CART:",
-                    data.product
+                    "ACTION: REMOVE PRODUCT"
                 );
 
 
                 const productId =
-                    data.product._id ||
-                    data.product.id;
+                    getProductId(
+                        data.product
+                    );
 
 
                 const exists =
@@ -759,10 +891,8 @@ function Assistant() {
 
                         item =>
 
-                            (
-                                item._id ||
-                                item.id
-                            ) === productId
+                            getProductId(item) ===
+                            productId
 
                     );
 
@@ -831,7 +961,7 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "CLEARING ENTIRE CART"
+                    "ACTION: CLEAR CART"
                 );
 
 
