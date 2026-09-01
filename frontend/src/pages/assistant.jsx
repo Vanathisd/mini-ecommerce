@@ -37,7 +37,7 @@ function Assistant() {
 
 
     // ==================================================
-    // GET USER CHAT KEY
+    // GET LOGGED-IN USER CHAT KEY
     // ==================================================
 
     const getChatKey = () => {
@@ -59,16 +59,13 @@ function Assistant() {
 
     useEffect(() => {
 
-        /*
-         * IMPORTANT:
-         *
-         * Logged-in users:
-         *     Load chat from localStorage.
-         *
-         * Guest users:
-         *     DO NOT load from localStorage.
-         *     Always start a fresh chat.
-         */
+        // ----------------------------------------------
+        // GUEST USER
+        // ----------------------------------------------
+        // Do NOT use localStorage.
+        // Every new website session starts with a
+        // fresh chatbot conversation.
+        // ----------------------------------------------
 
         if (!user?.id) {
 
@@ -83,47 +80,43 @@ function Assistant() {
         }
 
 
-        const chatKey =
-            getChatKey();
+        // ----------------------------------------------
+        // LOGGED-IN USER
+        // ----------------------------------------------
 
+        const chatKey = getChatKey();
 
         const savedChat =
             localStorage.getItem(chatKey);
 
 
-        if (savedChat) {
+        if (!savedChat) {
 
-            try {
+            setMessages([
+                welcomeMessage
+            ]);
 
-                const parsedChat =
-                    JSON.parse(savedChat);
+            return;
+
+        }
 
 
-                if (
-                    Array.isArray(parsedChat) &&
-                    parsedChat.length > 0
-                ) {
+        try {
 
-                    setMessages(parsedChat);
+            const parsedChat =
+                JSON.parse(savedChat);
 
-                }
 
-                else {
+            if (
+                Array.isArray(parsedChat) &&
+                parsedChat.length > 0
+            ) {
 
-                    setMessages([
-                        welcomeMessage
-                    ]);
-
-                }
+                setMessages(parsedChat);
 
             }
 
-            catch (error) {
-
-                console.error(
-                    "Failed to load assistant chat:",
-                    error
-                );
+            else {
 
                 setMessages([
                     welcomeMessage
@@ -133,7 +126,12 @@ function Assistant() {
 
         }
 
-        else {
+        catch (error) {
+
+            console.error(
+                "Failed to load assistant chat:",
+                error
+            );
 
             setMessages([
                 welcomeMessage
@@ -145,30 +143,16 @@ function Assistant() {
 
 
     // ==================================================
-    // SAVE CHAT ONLY FOR LOGGED-IN USERS
+    // SAVE CHAT
     // ==================================================
 
     useEffect(() => {
 
-        /*
-         * Guest chat is intentionally NOT saved.
-         *
-         * Therefore:
-         *
-         * Guest closes website
-         *       ↓
-         * Browser destroys React state
-         *       ↓
-         * Website opened again
-         *       ↓
-         * Fresh chat
-         *
-         * Logged-in user
-         *       ↓
-         * Chat saved in localStorage
-         *       ↓
-         * Can continue previous chat
-         */
+        // ----------------------------------------------
+        // GUEST
+        // ----------------------------------------------
+        // Do NOT save guest chat anywhere.
+        // ----------------------------------------------
 
         if (!user?.id) {
 
@@ -176,6 +160,10 @@ function Assistant() {
 
         }
 
+
+        // ----------------------------------------------
+        // LOGGED-IN USER
+        // ----------------------------------------------
 
         if (messages.length === 0) {
 
@@ -317,6 +305,7 @@ function Assistant() {
 
             }
 
+
             // ==================================================
             // NORMAL AI RESPONSE
             // ==================================================
@@ -389,17 +378,11 @@ function Assistant() {
         setMessage("");
 
 
-        /*
-         * Clear only the current UI chat.
-         *
-         * For logged-in users:
-         * localStorage remains untouched,
-         * so reopening the chat restores history.
-         *
-         * For guests:
-         * there is no localStorage,
-         * so closing/reopening starts fresh.
-         */
+        // ----------------------------------------------
+        // GUEST
+        // ----------------------------------------------
+        // Clear current chat when X is clicked.
+        // ----------------------------------------------
 
         if (!user?.id) {
 
@@ -408,6 +391,24 @@ function Assistant() {
             ]);
 
         }
+
+        // ----------------------------------------------
+        // LOGGED-IN USER
+        // ----------------------------------------------
+        // Do nothing to messages.
+        // localStorage keeps the conversation.
+        // ----------------------------------------------
+
+    };
+
+
+    // ==================================================
+    // OPEN CHAT
+    // ==================================================
+
+    const openChat = () => {
+
+        setIsOpen(true);
 
     };
 
@@ -444,9 +445,7 @@ function Assistant() {
 
                 <button
                     className="chatbot-button"
-                    onClick={() =>
-                        setIsOpen(true)
-                    }
+                    onClick={openChat}
                 >
 
                     <FaComments />
@@ -460,6 +459,8 @@ function Assistant() {
 
                 <div className="chatbot-container">
 
+
+                    {/* HEADER */}
 
                     <div className="chatbot-header">
 
@@ -487,6 +488,8 @@ function Assistant() {
 
                     </div>
 
+
+                    {/* MESSAGES */}
 
                     <div className="chatbot-messages">
 
@@ -520,6 +523,8 @@ function Assistant() {
 
                     </div>
 
+
+                    {/* INPUT */}
 
                     <div className="chatbot-input">
 
@@ -565,4 +570,3 @@ function Assistant() {
 
 
 export default Assistant;
-
