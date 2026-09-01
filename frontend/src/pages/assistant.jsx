@@ -1,22 +1,28 @@
-
 import { useEffect, useState } from "react";
 import { FaComments, FaTimes, FaPaperPlane } from "react-icons/fa";
+
 import { useAuth } from "../context/authContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
+
 import "../styles/assistant.css";
+
 
 function Assistant() {
 
     const { user } = useAuth();
 
+    const { addToCart } = useCart();
+
+
     const [isOpen, setIsOpen] = useState(false);
+
     const [message, setMessage] = useState("");
+
     const [messages, setMessages] = useState([]);
+
     const [loading, setLoading] = useState(false);
 
 
-    // ==========================================
-    // GET CHAT KEY
-    // ==========================================
 
     const getChatKey = () => {
 
@@ -31,9 +37,6 @@ function Assistant() {
     };
 
 
-    // ==========================================
-    // LOAD CHAT WHEN USER CHANGES
-    // ==========================================
 
     useEffect(() => {
 
@@ -86,8 +89,6 @@ function Assistant() {
 
         } else {
 
-            // New chat for this user / guest
-
             setMessages([
                 {
                     sender: "bot",
@@ -101,9 +102,6 @@ function Assistant() {
     }, [user]);
 
 
-    // ==========================================
-    // SAVE CHAT
-    // ==========================================
 
     useEffect(() => {
 
@@ -111,7 +109,9 @@ function Assistant() {
             return;
         }
 
+
         const chatKey = getChatKey();
+
 
         localStorage.setItem(
             chatKey,
@@ -121,14 +121,16 @@ function Assistant() {
     }, [messages, user]);
 
 
-    // ==========================================
-    // SEND MESSAGE
-    // ==========================================
 
     const sendMessage = async () => {
 
-        if (!message.trim() || loading) {
+        if (
+            !message.trim() ||
+            loading
+        ) {
+
             return;
+
         }
 
 
@@ -149,6 +151,7 @@ function Assistant() {
 
 
         setMessage("");
+
         setLoading(true);
 
 
@@ -187,16 +190,46 @@ function Assistant() {
             }
 
 
-            setMessages(prev => [
+            if (
+                data.action === "add_to_cart" &&
+                data.product
+            ) {
 
-                ...prev,
+                addToCart(
+                    data.product
+                );
 
-                {
-                    sender: "bot",
-                    text: data.response
-                }
 
-            ]);
+                setMessages(prev => [
+
+                    ...prev,
+
+                    {
+                        sender: "bot",
+
+                        text:
+                            `${data.product.name} has been added to your cart.`
+                    }
+
+                ]);
+
+            }
+
+            else {
+
+
+                setMessages(prev => [
+
+                    ...prev,
+
+                    {
+                        sender: "bot",
+                        text: data.response
+                    }
+
+                ]);
+
+            }
 
         }
 
@@ -214,6 +247,7 @@ function Assistant() {
 
                 {
                     sender: "bot",
+
                     text:
                         "Sorry, I'm unable to respond right now. Please try again."
                 }
@@ -231,10 +265,6 @@ function Assistant() {
     };
 
 
-    // ==========================================
-    // ENTER KEY
-    // ==========================================
-
     const handleKeyDown = (e) => {
 
         if (
@@ -250,10 +280,6 @@ function Assistant() {
 
     };
 
-
-    // ==========================================
-    // UI
-    // ==========================================
 
     return (
 
@@ -279,8 +305,6 @@ function Assistant() {
 
                 <div className="chatbot-container">
 
-
-                    {/* HEADER */}
 
                     <div className="chatbot-header">
 
@@ -310,8 +334,6 @@ function Assistant() {
 
                     </div>
 
-
-                    {/* MESSAGES */}
 
                     <div className="chatbot-messages">
 
@@ -343,8 +365,6 @@ function Assistant() {
 
                     </div>
 
-
-                    {/* INPUT */}
 
                     <div className="chatbot-input">
 
@@ -387,6 +407,7 @@ function Assistant() {
     );
 
 }
+
 
 export default Assistant;
 
