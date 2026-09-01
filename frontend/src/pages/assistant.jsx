@@ -36,10 +36,6 @@ function Assistant() {
     const [loading, setLoading] = useState(false);
 
 
-    // ==================================================
-    // GET LOGGED-IN USER CHAT KEY
-    // ==================================================
-
     const getChatKey = () => {
 
         if (user?.id) {
@@ -53,20 +49,10 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // LOAD CHAT
-    // ==================================================
 
     useEffect(() => {
 
-        // ----------------------------------------------
-        // GUEST USER
-        // ----------------------------------------------
-        // Do NOT use localStorage.
-        // Every new website session starts with a
-        // fresh chatbot conversation.
-        // ----------------------------------------------
-
+      
         if (!user?.id) {
 
             setMessages([
@@ -80,9 +66,7 @@ function Assistant() {
         }
 
 
-        // ----------------------------------------------
-        // LOGGED-IN USER
-        // ----------------------------------------------
+       
 
         const chatKey = getChatKey();
 
@@ -142,17 +126,10 @@ function Assistant() {
     }, [user]);
 
 
-    // ==================================================
-    // SAVE CHAT
-    // ==================================================
 
     useEffect(() => {
 
-        // ----------------------------------------------
-        // GUEST
-        // ----------------------------------------------
-        // Do NOT save guest chat anywhere.
-        // ----------------------------------------------
+      
 
         if (!user?.id) {
 
@@ -160,10 +137,6 @@ function Assistant() {
 
         }
 
-
-        // ----------------------------------------------
-        // LOGGED-IN USER
-        // ----------------------------------------------
 
         if (messages.length === 0) {
 
@@ -184,10 +157,6 @@ function Assistant() {
     }, [messages, user]);
 
 
-    // ==================================================
-    // SEND MESSAGE
-    // ==================================================
-
     const sendMessage = async () => {
 
         if (
@@ -204,7 +173,6 @@ function Assistant() {
             message.trim();
 
 
-        // Show user message immediately
 
         setMessages(prev => [
 
@@ -270,10 +238,6 @@ function Assistant() {
             }
 
 
-            // ==================================================
-            // ADD TO CART ACTION
-            // ==================================================
-
             if (
                 data.action === "add_to_cart" &&
                 data.product
@@ -305,10 +269,6 @@ function Assistant() {
 
             }
 
-
-            // ==================================================
-            // NORMAL AI RESPONSE
-            // ==================================================
 
             else {
 
@@ -362,10 +322,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // CLOSE CHAT
-    // ==================================================
-
     const closeChat = () => {
 
         console.log(
@@ -378,11 +334,6 @@ function Assistant() {
         setMessage("");
 
 
-        // ----------------------------------------------
-        // GUEST
-        // ----------------------------------------------
-        // Clear current chat when X is clicked.
-        // ----------------------------------------------
 
         if (!user?.id) {
 
@@ -392,30 +343,29 @@ function Assistant() {
 
         }
 
-        // ----------------------------------------------
-        // LOGGED-IN USER
-        // ----------------------------------------------
-        // Do nothing to messages.
-        // localStorage keeps the conversation.
-        // ----------------------------------------------
+
 
     };
 
 
-    // ==================================================
-    // OPEN CHAT
-    // ==================================================
-
     const openChat = () => {
+
+      
+
+        if (!user?.id) {
+
+            setMessages([
+                welcomeMessage
+            ]);
+
+            setMessage("");
+
+        }
+
 
         setIsOpen(true);
 
     };
-
-
-    // ==================================================
-    // ENTER KEY
-    // ==================================================
 
     const handleKeyDown = (e) => {
 
@@ -432,14 +382,11 @@ function Assistant() {
 
     };
 
-
-    // ==================================================
-    // UI
-    // ==================================================
-
     return (
 
         <>
+
+            {/* CHAT BUTTON */}
 
             {!isOpen && (
 
@@ -454,6 +401,8 @@ function Assistant() {
 
             )}
 
+
+            {/* CHAT WINDOW */}
 
             {isOpen && (
 
@@ -570,3 +519,4 @@ function Assistant() {
 
 
 export default Assistant;
+
