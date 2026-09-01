@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { FaComments, FaTimes, FaPaperPlane } from "react-icons/fa";
+import {
+    FaComments,
+    FaTimes,
+    FaPaperPlane
+} from "react-icons/fa";
 
 import { useAuth } from "../context/authContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
@@ -14,15 +18,27 @@ function Assistant() {
     const { addToCart } = useCart();
 
 
+    const welcomeMessage = {
+        sender: "bot",
+        text:
+            "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
+    };
+
+
     const [isOpen, setIsOpen] = useState(false);
 
     const [message, setMessage] = useState("");
 
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([
+        welcomeMessage
+    ]);
 
     const [loading, setLoading] = useState(false);
 
 
+    // ==================================================
+    // GET USER CHAT KEY
+    // ==================================================
 
     const getChatKey = () => {
 
@@ -32,15 +48,44 @@ function Assistant() {
 
         }
 
-        return "assistant_chat_guest";
+        return null;
 
     };
 
 
+    // ==================================================
+    // LOAD CHAT
+    // ==================================================
 
     useEffect(() => {
 
-        const chatKey = getChatKey();
+        /*
+         * IMPORTANT:
+         *
+         * Logged-in users:
+         *     Load chat from localStorage.
+         *
+         * Guest users:
+         *     DO NOT load from localStorage.
+         *     Always start a fresh chat.
+         */
+
+        if (!user?.id) {
+
+            setMessages([
+                welcomeMessage
+            ]);
+
+            setMessage("");
+
+            return;
+
+        }
+
+
+        const chatKey =
+            getChatKey();
+
 
         const savedChat =
             localStorage.getItem(chatKey);
@@ -54,23 +99,26 @@ function Assistant() {
                     JSON.parse(savedChat);
 
 
-                if (Array.isArray(parsedChat)) {
+                if (
+                    Array.isArray(parsedChat) &&
+                    parsedChat.length > 0
+                ) {
 
                     setMessages(parsedChat);
 
-                } else {
+                }
+
+                else {
 
                     setMessages([
-                        {
-                            sender: "bot",
-                            text:
-                                "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-                        }
+                        welcomeMessage
                     ]);
 
                 }
 
-            } catch (error) {
+            }
+
+            catch (error) {
 
                 console.error(
                     "Failed to load assistant chat:",
@@ -78,23 +126,17 @@ function Assistant() {
                 );
 
                 setMessages([
-                    {
-                        sender: "bot",
-                        text:
-                            "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-                    }
+                    welcomeMessage
                 ]);
 
             }
 
-        } else {
+        }
+
+        else {
 
             setMessages([
-                {
-                    sender: "bot",
-                    text:
-                        "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-                }
+                welcomeMessage
             ]);
 
         }
@@ -102,15 +144,48 @@ function Assistant() {
     }, [user]);
 
 
+    // ==================================================
+    // SAVE CHAT ONLY FOR LOGGED-IN USERS
+    // ==================================================
 
     useEffect(() => {
 
-        if (messages.length === 0) {
+        /*
+         * Guest chat is intentionally NOT saved.
+         *
+         * Therefore:
+         *
+         * Guest closes website
+         *       ↓
+         * Browser destroys React state
+         *       ↓
+         * Website opened again
+         *       ↓
+         * Fresh chat
+         *
+         * Logged-in user
+         *       ↓
+         * Chat saved in localStorage
+         *       ↓
+         * Can continue previous chat
+         */
+
+        if (!user?.id) {
+
             return;
+
         }
 
 
-        const chatKey = getChatKey();
+        if (messages.length === 0) {
+
+            return;
+
+        }
+
+
+        const chatKey =
+            getChatKey();
 
 
         localStorage.setItem(
@@ -121,6 +196,9 @@ function Assistant() {
     }, [messages, user]);
 
 
+    // ==================================================
+    // SEND MESSAGE
+    // ==================================================
 
     const sendMessage = async () => {
 
@@ -137,6 +215,8 @@ function Assistant() {
         const userMessage =
             message.trim();
 
+
+        // Show user message immediately
 
         setMessages(prev => [
 
@@ -156,6 +236,12 @@ function Assistant() {
 
 
         try {
+
+            console.log(
+                "Sending message to AI:",
+                userMessage
+            );
+
 
             const response =
                 await fetch(
@@ -180,6 +266,12 @@ function Assistant() {
                 await response.json();
 
 
+            console.log(
+                "AI response:",
+                data
+            );
+
+
             if (!response.ok) {
 
                 throw new Error(
@@ -190,10 +282,20 @@ function Assistant() {
             }
 
 
+            // ==================================================
+            // ADD TO CART ACTION
+            // ==================================================
+
             if (
                 data.action === "add_to_cart" &&
                 data.product
             ) {
+
+                console.log(
+                    "ADDING TO CART:",
+                    data.product
+                );
+
 
                 addToCart(
                     data.product
@@ -208,15 +310,18 @@ function Assistant() {
                         sender: "bot",
 
                         text:
-                            `${data.product.name} has been added to your cart.`
+                            `✅ ${data.product.name} has been added to your cart.`
                     }
 
                 ]);
 
             }
 
-            else {
+            // ==================================================
+            // NORMAL AI RESPONSE
+            // ==================================================
 
+            else {
 
                 setMessages(prev => [
 
@@ -224,7 +329,10 @@ function Assistant() {
 
                     {
                         sender: "bot",
-                        text: data.response
+
+                        text:
+                            data.response ||
+                            "Sorry, I couldn't understand that."
                     }
 
                 ]);
@@ -264,21 +372,49 @@ function Assistant() {
 
     };
 
-        const closeChat = () => {
 
-            console.log("CHAT CLOSE BUTTON CLICKED");
+    // ==================================================
+    // CLOSE CHAT
+    // ==================================================
 
-            setIsOpen(false);
+    const closeChat = () => {
+
+        console.log(
+            "CHAT CLOSE BUTTON CLICKED"
+        );
+
+
+        setIsOpen(false);
+
+        setMessage("");
+
+
+        /*
+         * Clear only the current UI chat.
+         *
+         * For logged-in users:
+         * localStorage remains untouched,
+         * so reopening the chat restores history.
+         *
+         * For guests:
+         * there is no localStorage,
+         * so closing/reopening starts fresh.
+         */
+
+        if (!user?.id) {
 
             setMessages([
-                {
-                    sender: "bot",
-                    text: "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-                }
+                welcomeMessage
             ]);
 
-            setMessage("");
-        };
+        }
+
+    };
+
+
+    // ==================================================
+    // ENTER KEY
+    // ==================================================
 
     const handleKeyDown = (e) => {
 
@@ -295,6 +431,10 @@ function Assistant() {
 
     };
 
+
+    // ==================================================
+    // UI
+    // ==================================================
 
     return (
 
@@ -336,11 +476,13 @@ function Assistant() {
                         </div>
 
 
-                       <button
+                        <button
                             onClick={closeChat}
                             className="chatbot-close"
                         >
+
                             <FaTimes />
+
                         </button>
 
                     </div>
@@ -353,7 +495,9 @@ function Assistant() {
 
                                 <div
                                     key={index}
-                                    className={`chat-message ${msg.sender}`}
+                                    className={
+                                        `chat-message ${msg.sender}`
+                                    }
                                 >
 
                                     {msg.text}
@@ -385,7 +529,7 @@ function Assistant() {
                             placeholder="Ask about products..."
                             onChange={(e) =>
                                 setMessage(
-                                    e.target.valuclose
+                                    e.target.value
                                 )
                             }
                             onKeyDown={
