@@ -264,18 +264,21 @@ function Assistant() {
 
     };
 
-    const closeChat = () => {
-    setIsOpen(false);
+        const closeChat = () => {
 
-    setMessages([
-        {
-            sender: "bot",
-            text: "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-        }
-    ]);
+            console.log("CHAT CLOSE BUTTON CLICKED");
 
-    setMessage("");
-};
+            setIsOpen(false);
+
+            setMessages([
+                {
+                    sender: "bot",
+                    text: "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
+                }
+            ]);
+
+            setMessage("");
+        };
 
     const handleKeyDown = (e) => {
 
@@ -333,15 +336,11 @@ function Assistant() {
                         </div>
 
 
-                        <button
-                            onClick={() =>
-                                setIsOpen(false)
-                            }
+                       <button
+                            onClick={closeChat}
                             className="chatbot-close"
                         >
-
                             <FaTimes />
-
                         </button>
 
                     </div>
@@ -386,7 +385,7 @@ function Assistant() {
                             placeholder="Ask about products..."
                             onChange={(e) =>
                                 setMessage(
-                                    e.target.value
+                                    e.target.valuclose
                                 )
                             }
                             onKeyDown={
