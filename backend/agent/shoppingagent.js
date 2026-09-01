@@ -151,7 +151,38 @@ Do not invent products.
             };
 
         }
+        
+        // ==================================================
+        // CHECKOUT REQUEST
+        // ==================================================
 
+        const checkoutRequest =
+            isCheckoutRequest(
+                cleanMessage
+            );
+
+        console.log(
+            "CHECKOUT REQUEST:",
+            checkoutRequest
+        );
+
+        if (checkoutRequest) {
+
+            console.log(
+                "CHECKOUT REQUEST DETECTED"
+            );
+
+            return {
+
+                response:
+                    "Sure! I'll take you to checkout to complete your order.",
+
+                action:
+                    "checkout"
+
+            };
+
+        }
 
         // ==================================================
         // DECREASE QUANTITY
@@ -623,6 +654,7 @@ Do not invent products.
             };
 
         }
+        
 
 
         // ==================================================
@@ -2124,7 +2156,47 @@ function isClearCartRequest(
     );
 
 }
+// ==================================================
+// CHECKOUT DETECTION
+// ==================================================
 
+function isCheckoutRequest(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase()
+            .trim();
+
+    const patterns = [
+
+        /^checkout$/i,
+
+        /\bgo\s+to\s+checkout\b/i,
+
+        /\bproceed\s+to\s+checkout\b/i,
+
+        /\bproceed\s+checkout\b/i,
+
+        /\bcontinue\s+to\s+checkout\b/i,
+
+        /\bcomplete\s+(my\s+)?order\b/i,
+
+        /\bplace\s+(my\s+)?order\b/i,
+
+        /\bplace\s+order\b/i,
+
+        /\bbuy\s+(my\s+)?cart\b/i
+
+    ];
+
+    return patterns.some(
+        pattern =>
+            pattern.test(text)
+    );
+
+}
 
 // ==================================================
 // REMOVE FROM CART DETECTION
