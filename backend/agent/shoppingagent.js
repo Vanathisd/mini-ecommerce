@@ -6,7 +6,6 @@ const {
     findProductFromMessage
 } = require("./producttools");
 
-
 const ollama = new Ollama({
     host: "http://127.0.0.1:11434"
 });
@@ -54,17 +53,23 @@ async function askShoppingAgent(message) {
         ];
 
 
-        if (generalWords.includes(lowerMessage)) {
+        if (
+            generalWords.includes(
+                lowerMessage
+            )
+        ) {
 
             const generalResponse =
                 await ollama.chat({
 
-                    model: "llama3.2:3b",
+                    model:
+                        "llama3.2:3b",
 
                     messages: [
 
                         {
-                            role: "system",
+                            role:
+                                "system",
 
                             content: `
 You are the friendly VELORA Shopping Assistant.
@@ -78,7 +83,8 @@ Do not invent products.
                         },
 
                         {
-                            role: "user",
+                            role:
+                                "user",
 
                             content:
                                 cleanMessage
@@ -150,7 +156,8 @@ Do not invent products.
             );
 
 
-            let detectedProduct = null;
+            let detectedProduct =
+                null;
 
 
             if (productSearchText) {
@@ -264,7 +271,269 @@ Do not invent products.
 
 
         // ==================================================
-        // CLEAR ALL CART
+        // INCREASE CART QUANTITY
+        // ==================================================
+
+        const increaseCartRequest =
+            isIncreaseCartRequest(
+                cleanMessage
+            );
+
+
+        console.log(
+            "INCREASE QUANTITY:",
+            increaseCartRequest
+        );
+
+
+        if (increaseCartRequest) {
+
+            console.log(
+                "INCREASE QUANTITY REQUEST DETECTED"
+            );
+
+
+            const productSearchText =
+                extractProductNameFromQuantityMessage(
+                    cleanMessage
+                );
+
+
+            console.log(
+                "QUANTITY PRODUCT SEARCH:",
+                productSearchText
+            );
+
+
+            let detectedProduct =
+                null;
+
+
+            if (productSearchText) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        productSearchText
+                    );
+
+            }
+
+
+            if (!detectedProduct) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        cleanMessage
+                    );
+
+            }
+
+
+            console.log(
+                "INCREASE DETECTED PRODUCT:",
+                detectedProduct
+                    ? detectedProduct.name
+                    : "NONE"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+
+                    response:
+                        "Sorry, I couldn't find that product in VELORA.",
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const latestProduct =
+                await getProductDetails(
+                    detectedProduct.name
+                );
+
+
+            if (!latestProduct) {
+
+                return {
+
+                    response:
+                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const stock =
+                Number(
+                    latestProduct.stock
+                );
+
+
+            if (
+                !Number.isFinite(stock) ||
+                stock <= 0
+            ) {
+
+                return {
+
+                    response:
+                        `${latestProduct.name} is currently out of stock.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            return {
+
+                response:
+                    `${latestProduct.name} quantity has been increased.`,
+
+                action:
+                    "increase_quantity",
+
+                product:
+                    latestProduct
+
+            };
+
+        }
+
+
+        // ==================================================
+        // DECREASE CART QUANTITY
+        // ==================================================
+
+        const decreaseCartRequest =
+            isDecreaseCartRequest(
+                cleanMessage
+            );
+
+
+        console.log(
+            "DECREASE QUANTITY:",
+            decreaseCartRequest
+        );
+
+
+        if (decreaseCartRequest) {
+
+            console.log(
+                "DECREASE QUANTITY REQUEST DETECTED"
+            );
+
+
+            const productSearchText =
+                extractProductNameFromQuantityMessage(
+                    cleanMessage
+                );
+
+
+            console.log(
+                "QUANTITY PRODUCT SEARCH:",
+                productSearchText
+            );
+
+
+            let detectedProduct =
+                null;
+
+
+            if (productSearchText) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        productSearchText
+                    );
+
+            }
+
+
+            if (!detectedProduct) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        cleanMessage
+                    );
+
+            }
+
+
+            console.log(
+                "DECREASE DETECTED PRODUCT:",
+                detectedProduct
+                    ? detectedProduct.name
+                    : "NONE"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+
+                    response:
+                        "Sorry, I couldn't find that product in VELORA.",
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            const latestProduct =
+                await getProductDetails(
+                    detectedProduct.name
+                );
+
+
+            if (!latestProduct) {
+
+                return {
+
+                    response:
+                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
+
+            return {
+
+                response:
+                    `${latestProduct.name} quantity has been decreased.`,
+
+                action:
+                    "decrease_quantity",
+
+                product:
+                    latestProduct
+
+            };
+
+        }
+
+
+        // ==================================================
+        // CLEAR ENTIRE CART
         // ==================================================
 
         const clearCartRequest =
@@ -300,7 +569,7 @@ Do not invent products.
 
 
         // ==================================================
-        // REMOVE FROM CART
+        // REMOVE SINGLE PRODUCT
         // ==================================================
 
         const removeFromCartRequest =
@@ -334,7 +603,8 @@ Do not invent products.
             );
 
 
-            let detectedProduct = null;
+            let detectedProduct =
+                null;
 
 
             if (productSearchText) {
@@ -418,29 +688,6 @@ Do not invent products.
 
 
         // ==================================================
-        // SHOW CART
-        // ==================================================
-
-        if (
-            isShowCartRequest(
-                cleanMessage
-            )
-        ) {
-
-            return {
-
-                response:
-                    "Please check your cart to see the items currently added.",
-
-                action:
-                    "show_cart"
-
-            };
-
-        }
-
-
-        // ==================================================
         // NORMAL PRODUCT SEARCH
         // ==================================================
 
@@ -496,12 +743,9 @@ Do not invent products.
                 );
 
 
-            // ==================================================
-            // PRICE + STOCK
-            // ==================================================
-
             if (
-                detailType === "price_stock"
+                detailType ===
+                "price_stock"
             ) {
 
                 const stock =
@@ -530,12 +774,9 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // PRICE
-            // ==================================================
-
             if (
-                detailType === "price"
+                detailType ===
+                "price"
             ) {
 
                 return {
@@ -551,12 +792,9 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // STOCK
-            // ==================================================
-
             if (
-                detailType === "stock"
+                detailType ===
+                "stock"
             ) {
 
                 const stock =
@@ -596,21 +834,16 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // DESCRIPTION
-            // ==================================================
-
             if (
-                detailType === "description"
+                detailType ===
+                "description"
             ) {
 
                 return {
 
                     response:
                         latestProduct.description
-
                             ? `${latestProduct.name}: ${latestProduct.description}`
-
                             : `Sorry, no description is available for ${latestProduct.name}.`,
 
                     action:
@@ -621,12 +854,9 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // CATEGORY
-            // ==================================================
-
             if (
-                detailType === "category"
+                detailType ===
+                "category"
             ) {
 
                 return {
@@ -642,12 +872,9 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // SUBCATEGORY
-            // ==================================================
-
             if (
-                detailType === "subcategory"
+                detailType ===
+                "subcategory"
             ) {
 
                 return {
@@ -662,10 +889,6 @@ Do not invent products.
 
             }
 
-
-            // ==================================================
-            // FULL PRODUCT DETAILS
-            // ==================================================
 
             const stock =
                 Number(
@@ -729,13 +952,15 @@ Do not invent products.
         const aiResponse =
             await ollama.chat({
 
-                model: "llama3.2:3b",
+                model:
+                    "llama3.2:3b",
 
                 messages: [
 
                     {
 
-                        role: "system",
+                        role:
+                            "system",
 
                         content: `
 You are the VELORA Shopping Assistant.
@@ -864,12 +1089,12 @@ JSON FORMAT:
     "productDetails": false
 }
 `
-
                     },
 
                     {
 
-                        role: "user",
+                        role:
+                            "user",
 
                         content:
                             cleanMessage
@@ -890,8 +1115,14 @@ JSON FORMAT:
                 aiResponse
                     .message
                     .content
-                    .replace(/```json/gi, "")
-                    .replace(/```/g, "")
+                    .replace(
+                        /```json/gi,
+                        ""
+                    )
+                    .replace(
+                        /```/g,
+                        ""
+                    )
                     .trim();
 
 
@@ -1106,32 +1337,23 @@ JSON FORMAT:
         }
 
 
-        // ==================================================
-        // RECOMMENDATIONS
-        // ==================================================
-
         const recommendationWords = [
-
             "suggest",
             "recommend",
             "some",
             "few"
-
         ];
 
 
         const isRecommendation =
             recommendationWords.some(
-
                 word =>
-
                     new RegExp(
                         `\\b${word}\\b`,
                         "i"
                     ).test(
                         cleanMessage
                     )
-
             );
 
 
@@ -1167,10 +1389,6 @@ JSON FORMAT:
 
         }
 
-
-        // ==================================================
-        // SEARCH PRODUCTS
-        // ==================================================
 
         const products =
             await searchProducts({
@@ -1217,10 +1435,6 @@ JSON FORMAT:
         }
 
 
-        // ==================================================
-        // PRODUCTS TO SHOW
-        // ==================================================
-
         let productsToShow;
 
 
@@ -1256,16 +1470,11 @@ JSON FORMAT:
         }
 
 
-        // ==================================================
-        // RESPONSE
-        // ==================================================
-
         let responseText =
             "Here are some matching products available at VELORA:\n\n";
 
 
         productsToShow.forEach(
-
             (
                 product,
                 index
@@ -1280,9 +1489,7 @@ JSON FORMAT:
                 const availability =
                     Number.isFinite(stock) &&
                     stock > 0
-
                         ? `In stock (${stock})`
-
                         : "Out of stock";
 
 
@@ -1295,7 +1502,6 @@ JSON FORMAT:
                     `   Availability: ${availability}\n\n`;
 
             }
-
         );
 
 
@@ -1312,7 +1518,6 @@ JSON FORMAT:
                 "none"
 
         };
-
 
     }
 
@@ -1331,10 +1536,12 @@ JSON FORMAT:
 
 
 // ==================================================
-// EXTRACT PRODUCT FOR ADD TO CART
+// EXTRACT ADD PRODUCT
 // ==================================================
 
-function extractProductNameFromCartMessage(message) {
+function extractProductNameFromCartMessage(
+    message
+) {
 
     let text =
         String(message || "")
@@ -1344,6 +1551,13 @@ function extractProductNameFromCartMessage(message) {
     text =
         text.replace(
             /^(please\s+)?(add|put|place)\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(to|in)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
             ""
         );
 
@@ -1362,37 +1576,18 @@ function extractProductNameFromCartMessage(message) {
         );
 
 
-    text =
-        text.replace(
-            /^i\s+want\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+(to|in)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^(this|that|it)\s*$/i,
-            ""
-        );
-
-
     return text.trim();
 
 }
 
 
 // ==================================================
-// EXTRACT PRODUCT FOR REMOVE FROM CART
+// EXTRACT REMOVE PRODUCT
 // ==================================================
 
-function extractProductNameFromRemoveMessage(message) {
+function extractProductNameFromRemoveMessage(
+    message
+) {
 
     let text =
         String(message || "")
@@ -1408,14 +1603,81 @@ function extractProductNameFromRemoveMessage(message) {
 
     text =
         text.replace(
-            /^(please\s+)?i\s+(don't|do not)\s+want\s+/i,
+            /\s+(from|out\s+of)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
             ""
         );
 
 
     text =
         text.replace(
-            /\s+(from|out\s+of)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
+            /^i\s+don't\s+want\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^i\s+do\s+not\s+want\s+/i,
+            ""
+        );
+
+
+    return text.trim();
+
+}
+
+
+// ==================================================
+// EXTRACT PRODUCT FOR QUANTITY CHANGE
+// ==================================================
+
+function extractProductNameFromQuantityMessage(
+    message
+) {
+
+    let text =
+        String(message || "")
+            .trim();
+
+
+    text =
+        text.replace(
+            /^(please\s+)?(increase|decrease|reduce|increment|decrement|lower|raise)\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^(please\s+)?add\s+one\s+more\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^(please\s+)?add\s+another\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^(please\s+)?add\s+more\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(quantity|qty)\s*$/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(in|to|from)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
             ""
         );
 
@@ -1429,7 +1691,9 @@ function extractProductNameFromRemoveMessage(message) {
 // ADD TO CART DETECTION
 // ==================================================
 
-function isAddToCartRequest(message) {
+function isAddToCartRequest(
+    message
+) {
 
     const text =
         String(message || "")
@@ -1458,19 +1722,19 @@ function isAddToCartRequest(message) {
 
     return patterns.some(
         pattern =>
-            pattern.test(
-                text
-            )
+            pattern.test(text)
     );
 
 }
 
 
 // ==================================================
-// CLEAR CART DETECTION
+// INCREASE QUANTITY DETECTION
 // ==================================================
 
-function isClearCartRequest(message) {
+function isIncreaseCartRequest(
+    message
+) {
 
     const text =
         String(message || "")
@@ -1480,47 +1744,126 @@ function isClearCartRequest(message) {
 
     const patterns = [
 
-        // clear cart
-        /\bclear\s+(my\s+)?cart\b/i,
+        /\bincrease\b.*\bquantity\b/i,
 
-        // empty cart
-        /\bempty\s+(my\s+)?cart\b/i,
+        /\bincrease\b.*\bcart\b/i,
 
-        // remove everything
-        /\bremove\s+everything\s+from\s+(my\s+)?cart\b/i,
+        /\bincrease\b.*\bitem\b/i,
 
-        // remove all from cart
-        /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+        /\badd\s+one\s+more\b/i,
 
-        // remove all cart items
-        /\bremove\s+all\s+(my\s+)?cart\s+items\b/i,
+        /\bone\s+more\b/i,
 
-        // delete everything
-        /\bdelete\s+everything\s+from\s+(my\s+)?cart\b/i,
+        /\badd\s+another\b/i,
 
-        // delete all from cart
-        /\bdelete\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+        /\badd\b.*\bmore\b/i,
 
-        // delete all cart items
-        /\bdelete\s+all\s+(my\s+)?cart\s+items\b/i,
+        /\bincrement\b/i,
 
-        // remove all items from basket
-        /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?basket\b/i,
-
-        // clear basket
-        /\bclear\s+(my\s+)?basket\b/i,
-
-        // empty basket
-        /\bempty\s+(my\s+)?basket\b/i
+        /\braise\b.*\bquantity\b/i
 
     ];
 
 
     return patterns.some(
         pattern =>
-            pattern.test(
-                text
-            )
+            pattern.test(text)
+    );
+
+}
+
+
+// ==================================================
+// DECREASE QUANTITY DETECTION
+// ==================================================
+
+function isDecreaseCartRequest(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase()
+            .trim();
+
+
+    const patterns = [
+
+        /\bdecrease\b.*\bquantity\b/i,
+
+        /\bdecrease\b.*\bcart\b/i,
+
+        /\bdecrease\b.*\bitem\b/i,
+
+        /\breduce\b.*\bquantity\b/i,
+
+        /\breduce\b.*\bcart\b/i,
+
+        /\bremove\s+one\b/i,
+
+        /\bone\s+less\b/i,
+
+        /\bdecrement\b/i,
+
+        /\blower\b.*\bquantity\b/i
+
+    ];
+
+
+    return patterns.some(
+        pattern =>
+            pattern.test(text)
+    );
+
+}
+
+
+// ==================================================
+// CLEAR CART DETECTION
+// ==================================================
+
+function isClearCartRequest(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase()
+            .trim();
+
+
+    const patterns = [
+
+        /\bclear\s+(my\s+)?cart\b/i,
+
+        /\bempty\s+(my\s+)?cart\b/i,
+
+        /\bremove\s+everything\s+from\s+(my\s+)?cart\b/i,
+
+        /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+
+        /\bremove\s+all\s+(items\s+)?from\s+(my\s+)?cart\b/i,
+
+        /\bdelete\s+everything\s+from\s+(my\s+)?cart\b/i,
+
+        /\bdelete\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+
+        /\bdelete\s+all\s+(items\s+)?from\s+(my\s+)?cart\b/i,
+
+        /\bremove\s+all\s+products\s+from\s+cart\b/i,
+
+        /\bremove\s+all\s+items\s+from\s+cart\b/i,
+
+        /\bremove\s+all\s+from\s+cart\b/i,
+
+        /\bdelete\s+all\s+from\s+cart\b/i
+
+    ];
+
+
+    return patterns.some(
+        pattern =>
+            pattern.test(text)
     );
 
 }
@@ -1530,7 +1873,9 @@ function isClearCartRequest(message) {
 // REMOVE FROM CART DETECTION
 // ==================================================
 
-function isRemoveFromCartRequest(message) {
+function isRemoveFromCartRequest(
+    message
+) {
 
     const text =
         String(message || "")
@@ -1550,8 +1895,6 @@ function isRemoveFromCartRequest(message) {
 
         /\btake\b.*\bout\s+of\s+(my\s+)?cart\b/i,
 
-        /\btake\b.*\bout\s+of\s+(my\s+)?basket\b/i,
-
         /\bi\s+don't\s+want\b/i,
 
         /\bi\s+do\s+not\s+want\b/i
@@ -1561,50 +1904,7 @@ function isRemoveFromCartRequest(message) {
 
     return patterns.some(
         pattern =>
-            pattern.test(
-                text
-            )
-    );
-
-}
-
-
-// ==================================================
-// SHOW CART DETECTION
-// ==================================================
-
-function isShowCartRequest(message) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bshow\s+(my\s+)?cart\b/i,
-
-        /\bview\s+(my\s+)?cart\b/i,
-
-        /\bsee\s+(my\s+)?cart\b/i,
-
-        /\bdisplay\s+(my\s+)?cart\b/i,
-
-        /\bwhat('?s| is)\s+in\s+(my\s+)?cart\b/i,
-
-        /\bcheck\s+(my\s+)?cart\b/i,
-
-        /^cart$/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(
-                text
-            )
+            pattern.test(text)
     );
 
 }
@@ -1614,7 +1914,9 @@ function isShowCartRequest(message) {
 // PRODUCT DETAILS
 // ==================================================
 
-function isSpecificProductQuestion(message) {
+function isSpecificProductQuestion(
+    message
+) {
 
     const text =
         String(message || "")
@@ -1650,9 +1952,7 @@ function isSpecificProductQuestion(message) {
 
     return detailWords.some(
         word =>
-            text.includes(
-                word
-            )
+            text.includes(word)
     );
 
 }
@@ -1662,7 +1962,9 @@ function isSpecificProductQuestion(message) {
 // DETAIL TYPE
 // ==================================================
 
-function detectDetailType(message) {
+function detectDetailType(
+    message
+) {
 
     const text =
         String(message || "")
@@ -1747,7 +2049,5 @@ function detectDetailType(message) {
 
 
 module.exports = {
-
     askShoppingAgent
-
 };
