@@ -4,7 +4,6 @@ const {
     askShoppingAgent
 } = require("../agent/shoppingagent");
 
-
 const router = express.Router();
 
 
@@ -13,7 +12,6 @@ router.post("/chat", async (req, res) => {
     try {
 
         const { message } = req.body;
-
 
         if (!message) {
 
@@ -28,38 +26,23 @@ router.post("/chat", async (req, res) => {
 
 
         const result =
-            await askShoppingAgent(
-                message
-            );
+            await askShoppingAgent(message);
 
-
-        // ==================================================
-        // AGENT RETURNED ACTION
-        // ==================================================
 
         if (
             result &&
             typeof result === "object"
         ) {
 
-            return res.json(
-                result
-            );
+            return res.json(result);
 
         }
 
 
-        // ==================================================
-        // NORMAL RESPONSE
-        // ==================================================
-
         return res.json({
 
             response:
-                result,
-
-            action:
-                "none"
+                result
 
         });
 
@@ -71,7 +54,6 @@ router.post("/chat", async (req, res) => {
             "AI Agent Error:",
             error
         );
-
 
         return res.status(500).json({
 
