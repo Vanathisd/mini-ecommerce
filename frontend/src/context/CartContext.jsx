@@ -8,8 +8,7 @@ import {
 import { useAuth } from "./authContext.jsx";
 
 
-const CartContext =
-    createContext();
+const CartContext = createContext();
 
 
 export function CartProvider({ children }) {
@@ -17,12 +16,10 @@ export function CartProvider({ children }) {
     const { user } = useAuth();
 
 
-    const [cart, setCart] =
-        useState([]);
+    const [cart, setCart] = useState([]);
 
 
-    const [cartLoaded, setCartLoaded] =
-        useState(false);
+    const [cartLoaded, setCartLoaded] = useState(false);
 
 
     // ==================================================
@@ -48,7 +45,6 @@ export function CartProvider({ children }) {
 
         }
 
-
         return "guest_cart";
 
     };
@@ -63,14 +59,11 @@ export function CartProvider({ children }) {
         setCartLoaded(false);
 
 
-        const cartKey =
-            getCartKey();
+        const cartKey = getCartKey();
 
 
         const savedCart =
-            localStorage.getItem(
-                cartKey
-            );
+            localStorage.getItem(cartKey);
 
 
         if (savedCart) {
@@ -78,15 +71,11 @@ export function CartProvider({ children }) {
             try {
 
                 const parsedCart =
-                    JSON.parse(
-                        savedCart
-                    );
+                    JSON.parse(savedCart);
 
 
                 setCart(
-                    Array.isArray(
-                        parsedCart
-                    )
+                    Array.isArray(parsedCart)
                         ? parsedCart
                         : []
                 );
@@ -99,7 +88,6 @@ export function CartProvider({ children }) {
                     "Failed to load cart:",
                     error
                 );
-
 
                 setCart([]);
 
@@ -132,18 +120,12 @@ export function CartProvider({ children }) {
         }
 
 
-        const cartKey =
-            getCartKey();
+        const cartKey = getCartKey();
 
 
         localStorage.setItem(
-
             cartKey,
-
-            JSON.stringify(
-                cart
-            )
-
+            JSON.stringify(cart)
         );
 
     }, [
@@ -153,6 +135,9 @@ export function CartProvider({ children }) {
     ]);
 
 
+    // ==================================================
+    // ADD TO CART
+    // ==================================================
 
     const addToCart = (
         product,
@@ -167,9 +152,7 @@ export function CartProvider({ children }) {
 
 
         const productId =
-            getProductId(
-                product
-            );
+            getProductId(product);
 
 
         if (!productId) {
@@ -189,95 +172,86 @@ export function CartProvider({ children }) {
 
 
         const validQuantity =
-            Number.isFinite(
-                requestedQuantity
-            ) &&
+            Number.isFinite(requestedQuantity) &&
             requestedQuantity > 0
 
-                ? Math.floor(
-                    requestedQuantity
-                )
+                ? Math.floor(requestedQuantity)
 
                 : 1;
 
 
-        setCart(
-            currentCart => {
+        setCart(currentCart => {
 
-                const existingProduct =
-                    currentCart.find(
-                        item =>
-                            getProductId(
-                                item
-                            ) === productId
-                    );
+            const existingProduct =
+                currentCart.find(
+                    item =>
+                        getProductId(item) === productId
+                );
 
 
+            // ------------------------------------------
+            // PRODUCT ALREADY EXISTS
+            // ------------------------------------------
 
-                if (existingProduct) {
+            if (existingProduct) {
 
-                    return currentCart.map(
-                        item => {
+                return currentCart.map(item => {
 
-                            if (
-                                getProductId(
-                                    item
-                                ) === productId
-                            ) {
+                    if (
+                        getProductId(item) === productId
+                    ) {
 
-                                return {
+                        return {
 
-                                    ...item,
+                            ...item,
 
-                                    quantity:
-                                        Number(
-                                            item.quantity || 0
-                                        ) +
-                                        validQuantity
+                            quantity:
+                                Number(
+                                    item.quantity || 0
+                                ) +
+                                validQuantity
 
-                                };
-
-                            }
-
-
-                            return item;
-
-                        }
-                    );
-
-                }
-
-
-                return [
-
-                    ...currentCart,
-
-                    {
-
-                        ...product,
-
-                        quantity:
-                            validQuantity
+                        };
 
                     }
 
-                ];
+
+                    return item;
+
+                });
 
             }
-        );
+
+
+            // ------------------------------------------
+            // NEW PRODUCT
+            // ------------------------------------------
+
+            return [
+
+                ...currentCart,
+
+                {
+
+                    ...product,
+
+                    quantity:
+                        validQuantity
+
+                }
+
+            ];
+
+        });
 
     };
 
 
-const clearCart = () => {
+    // ==================================================
+    // REMOVE PRODUCT COMPLETELY
+    // ==================================================
 
-    setCart([]);
-
-};
-
-    const removeFromCart = (
-        productId
-    ) => {
+    const removeFromCart = (productId) => {
 
         if (!productId) {
 
@@ -286,79 +260,136 @@ const clearCart = () => {
         }
 
 
-        setCart(
-            currentCart =>
+        setCart(currentCart =>
 
-                currentCart.filter(
-                    item =>
-                        getProductId(
-                            item
-                        ) !== productId
-                )
+            currentCart.filter(
+                item =>
+                    getProductId(item) !== productId
+            )
 
         );
 
     };
 
-const increaseQuantity = (productId) => {
 
-    setCart(prevCart =>
-        prevCart.map(item => {
+    // ==================================================
+    // INCREASE QUANTITY
+    // ==================================================
 
-            const id =
-                item._id ||
-                item.id;
+    const increaseQuantity = (productId) => {
 
-            if (id === productId) {
+        if (!productId) {
 
-                return {
-                    ...item,
-                    quantity:
-                        Number(item.quantity || 1) + 1
-                };
+            return;
 
-            }
-
-            return item;
-
-        })
-    );
-
-};
+        }
 
 
-const decreaseQuantity = (productId) => {
+        setCart(currentCart => {
 
-    setCart(prevCart =>
-        prevCart
-            .map(item => {
+            return currentCart.map(item => {
 
-                const id =
-                    item._id ||
-                    item.id;
+                const itemId =
+                    getProductId(item);
 
-                if (id === productId) {
+
+                if (String(itemId) === String(productId)) {
 
                     return {
+
                         ...item,
+
                         quantity:
-                            Number(item.quantity || 1) - 1
+                            Number(
+                                item.quantity || 0
+                            ) + 1
+
                     };
 
                 }
 
+
                 return item;
 
-            })
-            .filter(
-                item =>
-                    Number(item.quantity || 0) > 0
-            )
-    );
+            });
 
-};;
+        });
+
+    };
 
 
+    // ==================================================
+    // DECREASE QUANTITY
+    // ==================================================
+
+    const decreaseQuantity = (productId) => {
+
+        if (!productId) {
+
+            return;
+
+        }
+
+
+        setCart(currentCart => {
+
+            return currentCart
+
+                .map(item => {
+
+                    const itemId =
+                        getProductId(item);
+
+
+                    if (
+                        String(itemId) ===
+                        String(productId)
+                    ) {
+
+                        return {
+
+                            ...item,
+
+                            quantity:
+                                Number(
+                                    item.quantity || 1
+                                ) - 1
+
+                        };
+
+                    }
+
+
+                    return item;
+
+                })
+
+                .filter(
+                    item =>
+                        Number(
+                            item.quantity || 0
+                        ) > 0
+                );
+
+        });
+
+    };
+
+
+    // ==================================================
+    // CLEAR CART
+    // ==================================================
+
+    const clearCart = () => {
+
+        setCart([]);
+
+    };
+
+
+    // ==================================================
+    // CART TOTAL
+    // ==================================================
 
     const cartTotal =
         cart.reduce(
@@ -366,9 +397,11 @@ const decreaseQuantity = (productId) => {
             (total, item) =>
 
                 total +
+
                 Number(
                     item.price || 0
                 ) *
+
                 Number(
                     item.quantity || 0
                 ),
@@ -377,6 +410,10 @@ const decreaseQuantity = (productId) => {
 
         );
 
+
+    // ==================================================
+    // PROVIDER
+    // ==================================================
 
     return (
 
@@ -393,9 +430,9 @@ const decreaseQuantity = (productId) => {
 
                 decreaseQuantity,
 
-                cartTotal,
+                clearCart,
 
-                clearCart
+                cartTotal
 
             }}
         >
@@ -408,6 +445,10 @@ const decreaseQuantity = (productId) => {
 
 }
 
+
+// ==================================================
+// USE CART
+// ==================================================
 
 export function useCart() {
 
