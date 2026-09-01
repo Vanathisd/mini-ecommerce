@@ -23,9 +23,6 @@ export function CartProvider({ children }) {
         useState(false);
 
 
-    // ==================================================
-    // GET PRODUCT ID
-    // ==================================================
 
     const getProductId = (product) => {
 
@@ -46,10 +43,6 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // GET CART KEY
-    // ==================================================
-
     const getCartKey = () => {
 
         if (user?.id) {
@@ -62,10 +55,6 @@ export function CartProvider({ children }) {
 
     };
 
-
-    // ==================================================
-    // LOAD CART
-    // ==================================================
 
     useEffect(() => {
 
@@ -129,10 +118,6 @@ export function CartProvider({ children }) {
     }, [user]);
 
 
-    // ==================================================
-    // SAVE CART
-    // ==================================================
-
     useEffect(() => {
 
         if (!cartLoaded) {
@@ -155,10 +140,6 @@ export function CartProvider({ children }) {
         cartLoaded
     ]);
 
-
-    // ==================================================
-    // ADD TO CART
-    // ==================================================
 
     const addToCart = (
         product,
@@ -206,9 +187,6 @@ export function CartProvider({ children }) {
                 );
 
 
-            // ------------------------------------------
-            // PRODUCT ALREADY EXISTS
-            // ------------------------------------------
 
             if (existingProduct) {
 
@@ -240,10 +218,6 @@ export function CartProvider({ children }) {
             }
 
 
-            // ------------------------------------------
-            // NEW PRODUCT
-            // ------------------------------------------
-
             return [
 
                 ...currentCart,
@@ -264,9 +238,6 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // CLEAR CART
-    // ==================================================
 
     const clearCart = () => {
 
@@ -275,9 +246,6 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // REMOVE PRODUCT COMPLETELY
-    // ==================================================
 
     const removeFromCart = (
         productId
@@ -304,47 +272,88 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // INCREASE QUANTITY
-    // ==================================================
-
     const increaseQuantity = (
-        productId
-    ) => {
+    productId,
+    amount = 1
+) => {
 
-        if (!productId) {
-            return;
-        }
-
-
-        const normalizedId =
-            String(productId);
+    const quantityToIncrease =
+        Number(amount);
 
 
-        console.log(
-            "INCREASE CART PRODUCT ID:",
-            normalizedId
-        );
+    const validAmount =
+        Number.isFinite(quantityToIncrease) &&
+        quantityToIncrease > 0
+            ? Math.floor(quantityToIncrease)
+            : 1;
 
 
-        setCart(prevCart =>
+    setCart(prevCart =>
+        prevCart.map(item => {
 
-            prevCart.map(item => {
+            const id =
+                item._id ||
+                item.id;
 
-                const itemId =
-                    getProductId(item);
+
+            if (
+                String(id) ===
+                String(productId)
+            ) {
+
+                return {
+
+                    ...item,
+
+                    quantity:
+                        Number(
+                            item.quantity || 1
+                        ) +
+                        validAmount
+
+                };
+
+            }
 
 
-                console.log(
-                    "CHECK INCREASE:",
-                    item.name,
-                    itemId,
-                    normalizedId
-                );
+            return item;
+
+        })
+    );
+
+};
+
+
+const decreaseQuantity = (
+    productId,
+    amount = 1
+) => {
+
+    const quantityToDecrease =
+        Number(amount);
+
+
+    const validAmount =
+        Number.isFinite(quantityToDecrease) &&
+        quantityToDecrease > 0
+            ? Math.floor(quantityToDecrease)
+            : 1;
+
+
+    setCart(prevCart =>
+
+        prevCart
+
+            .map(item => {
+
+                const id =
+                    item._id ||
+                    item.id;
 
 
                 if (
-                    itemId === normalizedId
+                    String(id) ===
+                    String(productId)
                 ) {
 
                     return {
@@ -353,8 +362,9 @@ export function CartProvider({ children }) {
 
                         quantity:
                             Number(
-                                item.quantity || 0
-                            ) + 1
+                                item.quantity || 1
+                            ) -
+                            validAmount
 
                     };
 
@@ -365,108 +375,17 @@ export function CartProvider({ children }) {
 
             })
 
-        );
+            .filter(
+                item =>
+                    Number(
+                        item.quantity || 0
+                    ) > 0
+            )
 
-    };
+    );
 
+};
 
-    // ==================================================
-    // DECREASE QUANTITY
-    // ==================================================
-
-    const decreaseQuantity = (
-        productId
-    ) => {
-
-        if (!productId) {
-            return;
-        }
-
-
-        const normalizedId =
-            String(productId);
-
-
-        console.log(
-            "DECREASE CART PRODUCT ID:",
-            normalizedId
-        );
-
-
-        setCart(prevCart => {
-
-            console.log(
-                "CURRENT CART BEFORE DECREASE:",
-                prevCart
-            );
-
-
-            return prevCart
-
-                .map(item => {
-
-                    const itemId =
-                        getProductId(item);
-
-
-                    console.log(
-                        "CHECK DECREASE:",
-                        item.name,
-                        "ITEM ID:",
-                        itemId,
-                        "TARGET ID:",
-                        normalizedId,
-                        "QUANTITY:",
-                        item.quantity
-                    );
-
-
-                    if (
-                        itemId === normalizedId
-                    ) {
-
-                        const currentQuantity =
-                            Number(
-                                item.quantity || 1
-                            );
-
-
-                        return {
-
-                            ...item,
-
-                            quantity:
-                                currentQuantity - 1
-
-                        };
-
-                    }
-
-
-                    return item;
-
-                })
-
-
-                // --------------------------------------
-                // Remove item if quantity reaches 0
-                // --------------------------------------
-
-                .filter(
-                    item =>
-                        Number(
-                            item.quantity || 0
-                        ) > 0
-                );
-
-        });
-
-    };
-
-
-    // ==================================================
-    // CART TOTAL
-    // ==================================================
 
     const cartTotal =
         cart.reduce(
@@ -497,9 +416,6 @@ export function CartProvider({ children }) {
         );
 
 
-    // ==================================================
-    // PROVIDER
-    // ==================================================
 
     return (
 
@@ -531,10 +447,6 @@ export function CartProvider({ children }) {
 
 }
 
-
-// ==================================================
-// USE CART
-// ==================================================
 
 export function useCart() {
 

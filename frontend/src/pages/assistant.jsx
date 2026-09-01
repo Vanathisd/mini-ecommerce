@@ -74,34 +74,6 @@ function Assistant() {
 
 
     // ==================================================
-    // GET PRODUCT ID
-    // ==================================================
-
-    const getProductId = (
-        product
-    ) => {
-
-        if (!product) {
-            return null;
-        }
-
-
-        const id =
-            product._id ||
-            product.id;
-
-
-        if (!id) {
-            return null;
-        }
-
-
-        return String(id);
-
-    };
-
-
-    // ==================================================
     // CHAT KEY
     // ==================================================
 
@@ -112,7 +84,6 @@ function Assistant() {
             return `assistant_chat_${user.id}`;
 
         }
-
 
         return null;
 
@@ -168,7 +139,9 @@ function Assistant() {
 
 
             if (
-                Array.isArray(parsedChat) &&
+                Array.isArray(
+                    parsedChat
+                ) &&
                 parsedChat.length > 0
             ) {
 
@@ -212,12 +185,18 @@ function Assistant() {
     useEffect(() => {
 
         if (!user?.id) {
+
             return;
+
         }
 
 
-        if (messages.length === 0) {
+        if (
+            messages.length === 0
+        ) {
+
             return;
+
         }
 
 
@@ -372,7 +351,6 @@ function Assistant() {
 
 
         cartText +=
-
             `Total: ₹${total.toLocaleString("en-IN")}`;
 
 
@@ -462,12 +440,7 @@ function Assistant() {
         try {
 
             console.log(
-                "======================================"
-            );
-
-
-            console.log(
-                "CHATBOT USER MESSAGE:",
+                "Sending message to AI:",
                 userMessage
             );
 
@@ -507,7 +480,7 @@ function Assistant() {
 
 
             console.log(
-                "CHATBOT SERVER RESPONSE:",
+                "AI response:",
                 data
             );
 
@@ -540,39 +513,119 @@ function Assistant() {
 
             ) {
 
-                console.log(
-                    "ACTION: ADD TO CART"
-                );
+                const quantity =
+                    Number(
+                        data.quantity || 1
+                    );
+
+
+                const productId =
+                    data.product._id ||
+                    data.product.id;
+
+
+                const existingProduct =
+                    cart.find(
+
+                        item =>
+
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
+
+                    );
+
+
+                const currentQuantity =
+                    existingProduct
+                        ? Number(
+                            existingProduct.quantity || 0
+                        )
+                        : 0;
+
+
+                const stock =
+                    Number(
+                        data.product.stock
+                    );
+
+
+                const requestedTotal =
+                    currentQuantity +
+                    quantity;
 
 
                 console.log(
-                    "PRODUCT:",
-                    data.product
+                    "ADD QUANTITY:",
+                    quantity
                 );
 
 
-                addToCart(
-                    data.product
+                console.log(
+                    "CURRENT QUANTITY:",
+                    currentQuantity
                 );
 
 
-                setMessages(
-                    prev => [
-
-                        ...prev,
-
-                        {
-
-                            sender:
-                                "bot",
-
-                            text:
-                                `✅ ${data.product.name} has been added to your cart.`
-
-                        }
-
-                    ]
+                console.log(
+                    "STOCK:",
+                    stock
                 );
+
+
+                if (
+                    Number.isFinite(stock) &&
+                    requestedTotal > stock
+                ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `⚠️ Only ${stock} ${data.product.name} are available in stock. You already have ${currentQuantity} in your cart.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
+
+                    addToCart(
+                        data.product,
+                        quantity
+                    );
+
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `✅ ${quantity} ${data.product.name} ${quantity === 1 ? "has" : "have"} been added to your cart.`
+
+                            }
+
+                        ]
+                    );
+
+                }
 
             }
 
@@ -592,170 +645,31 @@ function Assistant() {
 
             ) {
 
-                console.log(
-                    "ACTION: INCREASE QUANTITY"
-                );
-
-
-                const productId =
-                    getProductId(
-                        data.product
+                const quantity =
+                    Number(
+                        data.quantity || 1
                     );
 
 
-                console.log(
-                    "AI PRODUCT ID:",
-                    productId
-                );
+                const productId =
+                    data.product._id ||
+                    data.product.id;
 
 
-                console.log(
-                    "CURRENT CART:",
-                    cart
-                );
-
-
-                const cartProduct =
+                const existingProduct =
                     cart.find(
 
                         item =>
 
-                            getProductId(item) ===
-                            productId
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
 
                     );
 
 
-                if (!cartProduct) {
-
-                    console.log(
-                        "PRODUCT NOT FOUND IN CART"
-                    );
-
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-
-                            }
-
-                        ]
-                    );
-
-                }
-
-                else {
-
-                    console.log(
-                        "PRODUCT FOUND IN CART:",
-                        cartProduct
-                    );
-
-
-                    increaseQuantity(
-                        productId
-                    );
-
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    `➕ ${data.product.name} quantity has been increased.`
-
-                            }
-
-                        ]
-                    );
-
-                }
-
-            }
-
-
-            // ==================================================
-            // DECREASE QUANTITY
-            // ==================================================
-
-            else if (
-
-                data.action ===
-                "decrease_quantity"
-
-                &&
-
-                data.product
-
-            ) {
-
-                console.log(
-                    "ACTION: DECREASE QUANTITY"
-                );
-
-
-                const productId =
-                    getProductId(
-                        data.product
-                    );
-
-
-                console.log(
-                    "AI PRODUCT:",
-                    data.product
-                );
-
-
-                console.log(
-                    "AI PRODUCT ID:",
-                    productId
-                );
-
-
-                console.log(
-                    "CURRENT CART:",
-                    cart
-                );
-
-
-                const cartProduct =
-                    cart.find(
-
-                        item =>
-
-                            getProductId(item) ===
-                            productId
-
-                    );
-
-
-                console.log(
-                    "MATCHED CART PRODUCT:",
-                    cartProduct
-                );
-
-
-                if (!cartProduct) {
-
-                    console.log(
-                        "PRODUCT NOT FOUND IN CART"
-                    );
-
+                if (!existingProduct) {
 
                     setMessages(
                         prev => [
@@ -781,8 +695,25 @@ function Assistant() {
 
                     const currentQuantity =
                         Number(
-                            cartProduct.quantity || 1
+                            existingProduct.quantity || 0
                         );
+
+
+                    const stock =
+                        Number(
+                            data.product.stock
+                        );
+
+
+                    const requestedTotal =
+                        currentQuantity +
+                        quantity;
+
+
+                    console.log(
+                        "INCREASE BY:",
+                        quantity
+                    );
 
 
                     console.log(
@@ -791,18 +722,22 @@ function Assistant() {
                     );
 
 
-                    // ------------------------------------------
-                    // QUANTITY IS 1
-                    // ------------------------------------------
+                    console.log(
+                        "REQUESTED TOTAL:",
+                        requestedTotal
+                    );
+
+
+                    console.log(
+                        "STOCK:",
+                        stock
+                    );
+
 
                     if (
-                        currentQuantity <= 1
+                        Number.isFinite(stock) &&
+                        requestedTotal > stock
                     ) {
-
-                        decreaseQuantity(
-                            productId
-                        );
-
 
                         setMessages(
                             prev => [
@@ -815,7 +750,7 @@ function Assistant() {
                                         "bot",
 
                                     text:
-                                        `🗑️ ${data.product.name} quantity reached 0, so it was removed from your cart.`
+                                        `⚠️ Cannot increase ${data.product.name}. Only ${stock} are available, and you already have ${currentQuantity} in your cart.`
 
                                 }
 
@@ -824,14 +759,11 @@ function Assistant() {
 
                     }
 
-                    // ------------------------------------------
-                    // QUANTITY GREATER THAN 1
-                    // ------------------------------------------
-
                     else {
 
-                        decreaseQuantity(
-                            productId
+                        increaseQuantity(
+                            productId,
+                            quantity
                         );
 
 
@@ -846,12 +778,178 @@ function Assistant() {
                                         "bot",
 
                                     text:
-                                        `➖ ${data.product.name} quantity has been decreased.`
+                                        `➕ ${data.product.name} quantity has been increased by ${quantity}.`
 
                                 }
 
                             ]
                         );
+
+                    }
+
+                }
+
+            }
+
+
+            // ==================================================
+            // DECREASE QUANTITY
+            // ==================================================
+
+            else if (
+
+                data.action ===
+                "decrease_quantity"
+
+                &&
+
+                data.product
+
+            ) {
+
+                const quantity =
+                    Number(
+                        data.quantity || 1
+                    );
+
+
+                const productId =
+                    data.product._id ||
+                    data.product.id;
+
+
+                const existingProduct =
+                    cart.find(
+
+                        item =>
+
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
+
+                    );
+
+
+                if (!existingProduct) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `ℹ️ ${data.product.name} is not currently in your cart.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
+
+                    const currentQuantity =
+                        Number(
+                            existingProduct.quantity || 0
+                        );
+
+
+                    if (
+                        currentQuantity <= 0
+                    ) {
+
+                        setMessages(
+                            prev => [
+
+                                ...prev,
+
+                                {
+
+                                    sender:
+                                        "bot",
+
+                                    text:
+                                        `ℹ️ ${data.product.name} is not currently in your cart.`
+
+                                }
+
+                            ]
+                        );
+
+                    }
+
+                    else {
+
+                        const actualDecrease =
+                            Math.min(
+                                quantity,
+                                currentQuantity
+                            );
+
+
+                        decreaseQuantity(
+                            productId,
+                            actualDecrease
+                        );
+
+
+                        const remainingQuantity =
+                            currentQuantity -
+                            actualDecrease;
+
+
+                        if (
+                            remainingQuantity === 0
+                        ) {
+
+                            setMessages(
+                                prev => [
+
+                                    ...prev,
+
+                                    {
+
+                                        sender:
+                                            "bot",
+
+                                        text:
+                                            `🗑️ ${data.product.name} has been removed from your cart because its quantity reached 0.`
+
+                                    }
+
+                                ]
+                            );
+
+                        }
+
+                        else {
+
+                            setMessages(
+                                prev => [
+
+                                    ...prev,
+
+                                    {
+
+                                        sender:
+                                            "bot",
+
+                                        text:
+                                            `➖ ${data.product.name} quantity has been decreased by ${actualDecrease}.`
+
+                                    }
+
+                                ]
+                            );
+
+                        }
 
                     }
 
@@ -875,15 +973,9 @@ function Assistant() {
 
             ) {
 
-                console.log(
-                    "ACTION: REMOVE PRODUCT"
-                );
-
-
                 const productId =
-                    getProductId(
-                        data.product
-                    );
+                    data.product._id ||
+                    data.product.id;
 
 
                 const exists =
@@ -891,8 +983,10 @@ function Assistant() {
 
                         item =>
 
-                            getProductId(item) ===
-                            productId
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
 
                     );
 
@@ -959,11 +1053,6 @@ function Assistant() {
                 "clear_cart"
 
             ) {
-
-                console.log(
-                    "ACTION: CLEAR CART"
-                );
-
 
                 if (
                     !cart ||
@@ -1090,11 +1179,6 @@ function Assistant() {
     // ==================================================
 
     const closeChat = () => {
-
-        console.log(
-            "CHAT CLOSE BUTTON CLICKED"
-        );
-
 
         setIsOpen(false);
 
