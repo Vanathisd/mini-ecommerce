@@ -18,7 +18,6 @@ async function askShoppingAgent(message) {
 
     try {
 
-
         const cleanMessage =
             String(message || "")
                 .replace(/\s+/g, " ")
@@ -52,9 +51,7 @@ async function askShoppingAgent(message) {
         ];
 
 
-        if (
-            generalWords.includes(lowerMessage)
-        ) {
+        if (generalWords.includes(lowerMessage)) {
 
             const generalResponse =
                 await ollama.chat({
@@ -152,12 +149,8 @@ Do not invent products.
 
 
             // ==================================================
-            // ALWAYS READ CURRENT STOCK
+            // ALWAYS READ CURRENT PRODUCT
             // ==================================================
-
-            // Fetch the product again from MongoDB.
-            // This guarantees that the latest stock value
-            // is used.
 
             const latestProduct =
                 await getProductDetails(
@@ -192,7 +185,10 @@ Do not invent products.
                 detailType
             );
 
-           
+
+            // ==================================================
+            // PRICE + STOCK
+            // ==================================================
 
             if (
                 detailType === "price_stock"
@@ -217,7 +213,10 @@ Do not invent products.
 
             }
 
-            
+
+            // ==================================================
+            // PRICE
+            // ==================================================
 
             if (
                 detailType === "price"
@@ -505,6 +504,49 @@ between 500 and 1500
 maxPrice = 1500
 
 ==========================================
+PRICE SORTING
+==========================================
+
+If customer asks:
+
+most expensive
+most costly
+highest price
+highest priced
+expensive
+
+set:
+
+"sortBy": "price_desc"
+
+If customer asks:
+
+cheapest
+least expensive
+lowest price
+lowest priced
+least costly
+
+set:
+
+"sortBy": "price_asc"
+
+==========================================
+RATING SORTING
+==========================================
+
+If customer asks:
+
+highest rated
+best rated
+top rated
+best rating
+
+set:
+
+"sortBy": "rating_desc"
+
+==========================================
 NORMAL SEARCH
 ==========================================
 
@@ -615,6 +657,7 @@ JSON FORMAT
     "search": null,
     "productName": null,
     "detailType": null,
+    "sortBy": null,
     "isNewArrival": false,
     "showAll": false,
     "general": false,
@@ -830,6 +873,31 @@ JSON FORMAT
 
         // ==================================================
         // STEP 7
+        // SORT DETECTION
+        // ==================================================
+
+        const lower = cleanMessage.toLowerCase();
+
+        if (
+            /\b(cheapest|lowest price|least expensive|low price)\b/i.test(lower)
+        ) {
+            intent.sortBy = "price_asc";
+        }
+
+        else if (
+            /\b(most expensive|highest price|costliest|most costly|expensive)\b/i.test(lower)
+        ) {
+            intent.sortBy = "price_desc";
+        }
+
+        else if (
+            /\b(highest rated|highest rating|best rated|top rated|best rating|highestrated)\b/i.test(lower)
+        ) {
+            intent.sortBy = "rating_desc";
+        }
+        
+        // ==================================================
+        // STEP 8
         // RECOMMENDATION DETECTION
         // ==================================================
 
@@ -854,7 +922,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 8
+        // STEP 9
         // NUMBER DETECTION
         // ==================================================
 
@@ -869,11 +937,22 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 9
+        // STEP 10
         // SHOW ALL
         // ==================================================
 
+        // Ranking requests should return only the
+        // best matching product.
+
         if (
+            intent.sortBy
+        ) {
+
+            intent.showAll = false;
+
+        }
+
+        else if (
             isNewArrivalRequest
         ) {
 
@@ -901,7 +980,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 10
+        // STEP 11
         // GENERAL FLAG
         // ==================================================
 
@@ -913,6 +992,7 @@ JSON FORMAT
             intent.productName ||
             intent.productDetails ||
             intent.isNewArrival ||
+            intent.sortBy ||
             intent.minPrice !== null ||
             intent.maxPrice !== null
 
@@ -933,7 +1013,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 11
+        // STEP 12
         // DATABASE SEARCH
         // ==================================================
 
@@ -956,7 +1036,10 @@ JSON FORMAT
                     intent.search,
 
                 isNewArrival:
-                    intent.isNewArrival === true
+                    intent.isNewArrival === true,
+
+                sortBy:
+                    intent.sortBy
 
             });
 
@@ -968,7 +1051,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 12
+        // STEP 13
         // NO PRODUCTS
         // ==================================================
 
@@ -998,7 +1081,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 13
+        // STEP 14
         // SELECT PRODUCTS
         // ==================================================
 
@@ -1006,6 +1089,18 @@ JSON FORMAT
 
 
         if (
+            intent.sortBy
+        ) {
+
+            // For cheapest / most expensive /
+            // highest rated, show only the top result.
+
+            productsToShow =
+                products.slice(0, 1);
+
+        }
+
+        else if (
             intent.showAll
         ) {
 
@@ -1023,7 +1118,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 14
+        // STEP 15
         // RESPONSE HEADER
         // ==================================================
 
@@ -1031,6 +1126,33 @@ JSON FORMAT
 
 
         if (
+            intent.sortBy === "price_desc"
+        ) {
+
+            responseText =
+                `The most expensive ${intent.subcategory || "product"} available at VELORA is:\n\n`;
+
+        }
+
+        else if (
+            intent.sortBy === "price_asc"
+        ) {
+
+            responseText =
+                `The cheapest ${intent.subcategory || "product"} available at VELORA is:\n\n`;
+
+        }
+
+        else if (
+            intent.sortBy === "rating_desc"
+        ) {
+
+            responseText =
+                `The highest rated ${intent.subcategory || "product"} available at VELORA is:\n\n`;
+
+        }
+
+        else if (
             intent.isNewArrival
         ) {
 
@@ -1078,7 +1200,7 @@ JSON FORMAT
 
 
         // ==================================================
-        // STEP 15
+        // STEP 16
         // DISPLAY PRODUCTS
         // ==================================================
 
@@ -1104,7 +1226,23 @@ JSON FORMAT
 
                     `   Price: ₹${product.price}\n` +
 
-                    `   Availability: ${availability}\n\n`;
+                    `   Availability: ${availability}\n`;
+
+
+                // Show rating only for rating-based
+                // requests.
+
+                if (
+                    intent.sortBy === "rating_desc"
+                ) {
+
+                    responseText +=
+                        `   Rating: ${product.rating ?? "N/A"}\n`;
+
+                }
+
+
+                responseText += "\n";
 
             }
         );
@@ -1176,6 +1314,11 @@ function isSpecificProductQuestion(message) {
 
 }
 
+
+// ======================================================
+// DETAIL TYPE
+// ======================================================
+
 function detectDetailType(message) {
 
     const text =
@@ -1211,37 +1354,54 @@ function detectDetailType(message) {
 
 
     // Both price + stock
-    if (asksPrice && asksStock) {
+
+    if (
+        asksPrice &&
+        asksStock
+    ) {
+
         return "price_stock";
+
     }
 
 
     if (asksPrice) {
+
         return "price";
+
     }
 
 
     if (asksStock) {
+
         return "stock";
+
     }
 
 
     if (asksDescription) {
+
         return "description";
+
     }
 
 
     if (asksCategory) {
+
         return "category";
+
     }
 
 
     if (asksSubcategory) {
+
         return "subcategory";
+
     }
 
 
     return "full";
+
 }
 
 

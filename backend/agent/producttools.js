@@ -40,7 +40,8 @@ async function searchProducts({
     minPrice = null,
     maxPrice = null,
     search = null,
-    isNewArrival = false
+    isNewArrival = false,
+    sortBy = null
 }) {
 
     try {
@@ -193,15 +194,55 @@ async function searchProducts({
         );
 
 
-        const products =
-            await Product.find(query)
-                .select(
-                    "name category subcategory description price stock image rating reviews isNewArrival createdAt"
-                )
-                .sort({
-                    createdAt: -1,
-                    _id: -1
-                });
+        // ==================================================
+// SORTING
+// ==================================================
+
+let sortQuery = {
+    createdAt: -1,
+    _id: -1
+};
+
+
+// Cheapest
+if (sortBy === "price_asc") {
+
+    sortQuery = {
+        price: 1,
+        _id: 1
+    };
+
+}
+
+
+// Most expensive
+else if (sortBy === "price_desc") {
+
+    sortQuery = {
+        price: -1,
+        _id: -1
+    };
+
+}
+
+
+// Highest rated
+else if (sortBy === "rating_desc") {
+
+    sortQuery = {
+        rating: -1,
+        _id: -1
+    };
+
+}
+
+
+const products =
+    await Product.find(query)
+        .select(
+            "name category subcategory description price stock image rating reviews isNewArrival createdAt"
+        )
+        .sort(sortQuery);
 
 
         console.log(
