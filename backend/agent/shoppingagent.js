@@ -35,7 +35,6 @@ async function askShoppingAgent(message) {
             cleanMessage.toLowerCase();
 
 
-
         const generalWords = [
             "hello",
             "hi",
@@ -87,36 +86,81 @@ Do not invent products.
         }
 
 
-        const detectedProduct =
-            await findProductFromMessage(
-                cleanMessage
-            );
-
         const addToCartRequest =
             isAddToCartRequest(cleanMessage);
 
 
-        if (
-            addToCartRequest
-        ) {
+        console.log("======================================");
+        console.log("USER MESSAGE:", cleanMessage);
+        console.log("ADD TO CART REQUEST:", addToCartRequest);
+        console.log("======================================");
+
+
+        if (addToCartRequest) {
 
             console.log(
                 "ADD TO CART REQUEST DETECTED"
             );
 
 
-            if (!detectedProduct) {
 
-                return {
-                    response:
-                        "Please tell me the product name you want to add to your cart.",
-                    action: "none"
-                };
+            const productSearchText =
+                extractProductNameFromCartMessage(
+                    cleanMessage
+                );
+
+
+            console.log(
+                "PRODUCT SEARCH TEXT:",
+                productSearchText
+            );
+
+
+            let detectedProduct = null;
+
+
+            if (productSearchText) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        productSearchText
+                    );
 
             }
 
 
-            // Read the latest product from database
+            if (!detectedProduct) {
+
+                detectedProduct =
+                    await findProductFromMessage(
+                        cleanMessage
+                    );
+
+            }
+
+
+            console.log(
+                "DETECTED PRODUCT:",
+                detectedProduct
+                    ? `${detectedProduct.name} | STOCK: ${detectedProduct.stock}`
+                    : "NONE"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+
+                    response:
+                        "Sorry, I couldn't find that product in VELORA.",
+
+                    action:
+                        "none"
+
+                };
+
+            }
+
 
             const latestProduct =
                 await getProductDetails(
@@ -131,7 +175,8 @@ Do not invent products.
                     response:
                         `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
 
-                    action: "none"
+                    action:
+                        "none"
 
                 };
 
@@ -139,7 +184,9 @@ Do not invent products.
 
 
             const stock =
-                Number(latestProduct.stock);
+                Number(
+                    latestProduct.stock
+                );
 
 
             if (
@@ -152,7 +199,8 @@ Do not invent products.
                     response:
                         `${latestProduct.name} is currently out of stock.`,
 
-                    action: "none"
+                    action:
+                        "none"
 
                 };
 
@@ -165,10 +213,14 @@ Do not invent products.
             );
 
 
+            // ------------------------------------------------
+            // RETURN CART ACTION
+            // ------------------------------------------------
+
             return {
 
                 response:
-                    `${latestProduct.name} is available and ready to be added to your cart.`,
+                    `${latestProduct.name} has been added to your cart.`,
 
                 action:
                     "add_to_cart",
@@ -180,6 +232,11 @@ Do not invent products.
 
         }
 
+
+        const detectedProduct =
+            await findProductFromMessage(
+                cleanMessage
+            );
 
 
         console.log(
@@ -263,7 +320,9 @@ Do not invent products.
             ) {
 
                 const stock =
-                    Number(latestProduct.stock);
+                    Number(
+                        latestProduct.stock
+                    );
 
 
                 const availability =
@@ -292,6 +351,7 @@ Do not invent products.
                 );
 
             }
+
 
             if (
                 detailType === "stock"
@@ -330,6 +390,7 @@ Do not invent products.
 
             }
 
+
             if (
                 detailType === "description"
             ) {
@@ -352,6 +413,7 @@ Do not invent products.
                 );
 
             }
+
 
             if (
                 detailType === "category"
@@ -386,9 +448,7 @@ Do not invent products.
             const availability =
                 Number.isFinite(stock) &&
                 stock > 0
-
                     ? `In stock (${stock})`
-
                     : "Out of stock";
 
 
@@ -741,7 +801,6 @@ JSON FORMAT
                     jsonText
                 );
 
-
         } catch (error) {
 
             console.error(
@@ -756,6 +815,7 @@ JSON FORMAT
             );
 
         }
+
 
 
         const newArrivalWords = [
@@ -788,6 +848,7 @@ JSON FORMAT
             intent.isNewArrival = true;
 
             intent.category = null;
+
             intent.subcategory = null;
 
         }
@@ -893,26 +954,38 @@ JSON FORMAT
         }
 
 
-        const lower = cleanMessage.toLowerCase();
+
+        const lower =
+            cleanMessage.toLowerCase();
+
 
         if (
             /\b(cheapest|lowest price|least expensive|low price)\b/i.test(lower)
         ) {
-            intent.sortBy = "price_asc";
+
+            intent.sortBy =
+                "price_asc";
+
         }
 
         else if (
             /\b(most expensive|highest price|costliest|most costly|expensive)\b/i.test(lower)
         ) {
-            intent.sortBy = "price_desc";
+
+            intent.sortBy =
+                "price_desc";
+
         }
 
         else if (
             /\b(highest rated|highest rating|best rated|top rated|best rating|highestrated)\b/i.test(lower)
         ) {
-            intent.sortBy = "rating_desc";
+
+            intent.sortBy =
+                "rating_desc";
+
         }
- 
+
 
         const recommendationWords = [
 
@@ -934,6 +1007,7 @@ JSON FORMAT
             );
 
 
+
         const numberMatch =
             lowerMessage.match(
                 /\b([1-3])\b/
@@ -942,7 +1016,6 @@ JSON FORMAT
 
         const hasSmallNumber =
             Boolean(numberMatch);
-
 
 
         if (
@@ -978,6 +1051,8 @@ JSON FORMAT
                 !hasSmallNumber;
 
         }
+
+
 
         if (
 
@@ -1071,7 +1146,6 @@ JSON FORMAT
         if (
             intent.sortBy
         ) {
-
 
             productsToShow =
                 products.slice(0, 1);
@@ -1176,15 +1250,15 @@ JSON FORMAT
             (product, index) => {
 
                 const stock =
-                    Number(product.stock);
+                    Number(
+                        product.stock
+                    );
 
 
                 const availability =
                     Number.isFinite(stock) &&
                     stock > 0
-
                         ? `In stock (${stock})`
-
                         : "Out of stock";
 
 
@@ -1195,7 +1269,6 @@ JSON FORMAT
                     `   Price: ₹${product.price}\n` +
 
                     `   Availability: ${availability}\n`;
-
 
 
                 if (
@@ -1231,6 +1304,54 @@ JSON FORMAT
         throw error;
 
     }
+
+}
+
+
+function extractProductNameFromCartMessage(message) {
+
+    let text =
+        String(message || "")
+            .trim();
+
+
+    text =
+        text.replace(
+            /^(please\s+)?(add|put|place)\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(to|in)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^(please\s+)?buy\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^i\s+want\s+to\s+buy\s+/i,
+            ""
+        );
+
+
+
+    text =
+        text.replace(
+            /^(this|that|it)\s*$/i,
+            ""
+        );
+
+
+    return text.trim();
 
 }
 
@@ -1362,6 +1483,7 @@ function detectDetailType(message) {
 
 }
 
+
 function isAddToCartRequest(message) {
 
     const text =
@@ -1370,22 +1492,28 @@ function isAddToCartRequest(message) {
             .trim();
 
 
-    const addWords = [
-        "add to cart",
-        "add it to cart",
-        "add this to cart",
-        "put in cart",
-        "put it in cart",
-        "add to my cart",
-        "add it to my cart",
-        "add this to my cart",
-        "buy this",
-        "i want to buy"
+    const addToCartPatterns = [
+
+        /\badd\b.*\bto\s+(my\s+)?cart\b/i,
+
+        /\bput\b.*\bin\s+(my\s+)?cart\b/i,
+
+        /\bplace\b.*\bin\s+(my\s+)?cart\b/i,
+
+        /\badd\b.*\bto\s+(my\s+)?basket\b/i,
+
+        /\bput\b.*\bin\s+(my\s+)?basket\b/i,
+
+        /\bbuy\b.*\b(this|that|it)\b/i,
+
+        /\bi\s+want\s+to\s+buy\b/i
+
     ];
 
 
-    return addWords.some(
-        word => text.includes(word)
+    return addToCartPatterns.some(
+        pattern =>
+            pattern.test(text)
     );
 
 }

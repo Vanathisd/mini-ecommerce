@@ -1,7 +1,11 @@
 const express = require("express");
-const { askShoppingAgent } = require("../agent/shoppingagent");
+
+const {
+    askShoppingAgent
+} = require("../agent/shoppingagent");
 
 const router = express.Router();
+
 
 router.post("/chat", async (req, res) => {
 
@@ -32,10 +36,8 @@ router.post("/chat", async (req, res) => {
         }
 
 
-        res.json({
-
+        return res.json({
             response: result
-
         });
 
     }
@@ -47,12 +49,9 @@ router.post("/chat", async (req, res) => {
             error
         );
 
-
-        res.status(500).json({
-
+        return res.status(500).json({
             message:
                 "Something went wrong with the AI agent"
-
         });
 
     }
