@@ -1,182 +1,450 @@
-const express = require("express");
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState
+} from "react";
 
-const {
-    askShoppingAgent
-} = require("../agent/shoppingagent");
-
-const {
-    findProductFromMessage,
-    getProductDetails
-} = require("../agent/producttools");
-
-const router = express.Router();
+import { useAuth } from "./authContext.jsx";
 
 
-router.post("/chat", async (req, res) => {
-
-    try {
-
-        const { message } = req.body;
-
-        if (!message) {
-
-            return res.status(400).json({
-                message: "Message is required"
-            });
-
-        }
-
-        const response =
-            await askShoppingAgent(message);
-
-        res.json({
-            response
-        });
-
-    } catch (error) {
-
-        console.error(
-            "AI Agent Error:",
-            error
-        );
-
-        res.status(500).json({
-            message:
-                "Something went wrong with the AI agent"
-        });
-
-    }
-
-});
+const CartContext =
+    createContext();
 
 
+export function CartProvider({ children }) {
 
-router.post("/cart-action", async (req, res) => {
+    const { user } = useAuth();
 
-    try {
 
-        const { message } = req.body;
+    const [cart, setCart] =
+        useState([]);
 
-        if (!message) {
 
-            return res.status(400).json({
-                message: "Message is required"
-            });
+    const [cartLoaded, setCartLoaded] =
+        useState(false);
+
+
+    // ==================================================
+    // GET PRODUCT ID
+    // ==================================================
+
+    const getProductId = (product) => {
+
+        return product?._id || product?.id;
+
+    };
+
+
+    // ==================================================
+    // GET CART KEY
+    // ==================================================
+
+    const getCartKey = () => {
+
+        if (user?.id) {
+
+            return `cart_${user.id}`;
 
         }
 
 
-        const text =
-            String(message)
-                .toLowerCase()
-                .trim();
+        return "guest_cart";
+
+    };
 
 
-        const isAddToCart =
-            /\b(add|put|place)\b/i.test(text) &&
-            /\b(cart|basket)\b/i.test(text);
+    // ==================================================
+    // LOAD CART
+    // ==================================================
+
+    useEffect(() => {
+
+        setCartLoaded(false);
 
 
-        if (!isAddToCart) {
-
-            return res.json({
-                action: "none"
-            });
-
-        }
+        const cartKey =
+            getCartKey();
 
 
-        const detectedProduct =
-            await findProductFromMessage(message);
-
-
-        if (!detectedProduct) {
-
-            return res.json({
-
-                action: "none",
-
-                message:
-                    "Sorry, I couldn't find that product in VELORA."
-
-            });
-
-        }
-
-
-        const latestProduct =
-            await getProductDetails(
-                detectedProduct.name
+        const savedCart =
+            localStorage.getItem(
+                cartKey
             );
 
 
-        if (!latestProduct) {
+        if (savedCart) {
 
-            return res.json({
+            try {
 
-                action: "none",
+                const parsedCart =
+                    JSON.parse(
+                        savedCart
+                    );
 
-                message:
-                    "Sorry, I couldn't find that product in VELORA."
 
-            });
+                setCart(
+                    Array.isArray(
+                        parsedCart
+                    )
+                        ? parsedCart
+                        : []
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Failed to load cart:",
+                    error
+                );
+
+
+                setCart([]);
+
+            }
+
+        }
+
+        else {
+
+            setCart([]);
 
         }
 
 
-        // Check stock
+        setCartLoaded(true);
 
-        const stock =
-            Number(latestProduct.stock);
+    }, [user]);
 
 
-        if (
-            !Number.isFinite(stock) ||
-            stock <= 0
-        ) {
+    // ==================================================
+    // SAVE CART
+    // ==================================================
 
-            return res.json({
+    useEffect(() => {
 
-                action: "none",
+        if (!cartLoaded) {
 
-                message:
-                    `${latestProduct.name} is currently out of stock.`
-
-            });
+            return;
 
         }
 
 
-
-        return res.json({
-
-            action: "add_to_cart",
-
-            product: latestProduct,
-
-            message:
-                `${latestProduct.name} has been added to your cart.`
-
-        });
+        const cartKey =
+            getCartKey();
 
 
-    } catch (error) {
+        localStorage.setItem(
 
-        console.error(
-            "Cart Action Error:",
-            error
+            cartKey,
+
+            JSON.stringify(
+                cart
+            )
+
         );
 
-        res.status(500).json({
-
-            message:
-                "Unable to process cart action."
-
-        });
-
-    }
-
-});
+    }, [
+        cart,
+        user,
+        cartLoaded
+    ]);
 
 
-module.exports = router;
+    // ==================================================
+    // ADD TO CART
+    // ==================================================
+
+    const addToCart = (
+        product,
+        quantity = 1
+    ) => {
+
+        if (!product) {
+
+            return;
+
+        }
+
+
+        const productId =
+            getProductId(
+                product
+            );
+
+
+        if (!productId) {
+
+            console.error(
+                "Product ID missing:",
+                product
+            );
+
+            return;
+
+        }
+
+
+        const requestedQuantity =
+            Number(quantity);
+
+
+        const validQuantity =
+            Number.isFinite(
+                requestedQuantity
+            ) &&
+            requestedQuantity > 0
+
+                ? Math.floor(
+                    requestedQuantity
+                )
+
+                : 1;
+
+
+        setCart(
+            currentCart => {
+
+                const existingProduct =
+                    currentCart.find(
+                        item =>
+                            getProductId(
+                                item
+                            ) === productId
+                    );
+
+
+                // ==================================================
+                // ALREADY IN CART
+                // ==================================================
+
+                if (existingProduct) {
+
+                    return currentCart.map(
+                        item => {
+
+                            if (
+                                getProductId(
+                                    item
+                                ) === productId
+                            ) {
+
+                                return {
+
+                                    ...item,
+
+                                    quantity:
+                                        Number(
+                                            item.quantity || 0
+                                        ) +
+                                        validQuantity
+
+                                };
+
+                            }
+
+
+                            return item;
+
+                        }
+                    );
+
+                }
+
+
+                // ==================================================
+                // NEW PRODUCT
+                // ==================================================
+
+                return [
+
+                    ...currentCart,
+
+                    {
+
+                        ...product,
+
+                        quantity:
+                            validQuantity
+
+                    }
+
+                ];
+
+            }
+        );
+
+    };
+
+
+    // ==================================================
+    // REMOVE FROM CART
+    // ==================================================
+
+    const removeFromCart = (
+        productId
+    ) => {
+
+        if (!productId) {
+
+            return;
+
+        }
+
+
+        setCart(
+            currentCart =>
+
+                currentCart.filter(
+                    item =>
+                        getProductId(
+                            item
+                        ) !== productId
+                )
+
+        );
+
+    };
+
+
+    // ==================================================
+    // INCREASE
+    // ==================================================
+
+    const increaseQuantity = (
+        productId
+    ) => {
+
+        setCart(
+            currentCart =>
+
+                currentCart.map(
+                    item =>
+
+                        getProductId(
+                            item
+                        ) === productId
+
+                            ? {
+
+                                ...item,
+
+                                quantity:
+                                    Number(
+                                        item.quantity || 0
+                                    ) + 1
+
+                            }
+
+                            : item
+                )
+
+        );
+
+    };
+
+
+    // ==================================================
+    // DECREASE
+    // ==================================================
+
+    const decreaseQuantity = (
+        productId
+    ) => {
+
+        setCart(
+            currentCart =>
+
+                currentCart
+
+                    .map(
+                        item =>
+
+                            getProductId(
+                                item
+                            ) === productId
+
+                                ? {
+
+                                    ...item,
+
+                                    quantity:
+                                        Number(
+                                            item.quantity || 0
+                                        ) - 1
+
+                                }
+
+                                : item
+                    )
+
+                    .filter(
+                        item =>
+                            item.quantity > 0
+                    )
+
+        );
+
+    };
+
+
+    // ==================================================
+    // CART TOTAL
+    // ==================================================
+
+    const cartTotal =
+        cart.reduce(
+
+            (total, item) =>
+
+                total +
+                Number(
+                    item.price || 0
+                ) *
+                Number(
+                    item.quantity || 0
+                ),
+
+            0
+
+        );
+
+
+    return (
+
+        <CartContext.Provider
+            value={{
+
+                cart,
+
+                addToCart,
+
+                removeFromCart,
+
+                increaseQuantity,
+
+                decreaseQuantity,
+
+                cartTotal
+
+            }}
+        >
+
+            {children}
+
+        </CartContext.Provider>
+
+    );
+
+}
+
+
+export function useCart() {
+
+    return useContext(
+        CartContext
+    );
+
+}
