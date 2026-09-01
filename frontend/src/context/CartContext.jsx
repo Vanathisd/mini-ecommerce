@@ -300,78 +300,63 @@ const clearCart = () => {
 
     };
 
+const increaseQuantity = (productId) => {
 
-    const increaseQuantity = (
-        productId
-    ) => {
+    setCart(prevCart =>
+        prevCart.map(item => {
 
-        setCart(
-            currentCart =>
+            const id =
+                item._id ||
+                item.id;
 
-                currentCart.map(
-                    item =>
+            if (id === productId) {
 
-                        getProductId(
-                            item
-                        ) === productId
+                return {
+                    ...item,
+                    quantity:
+                        Number(item.quantity || 1) + 1
+                };
 
-                            ? {
+            }
 
-                                ...item,
+            return item;
 
-                                quantity:
-                                    Number(
-                                        item.quantity || 0
-                                    ) + 1
+        })
+    );
 
-                            }
-
-                            : item
-                )
-
-        );
-
-    };
+};
 
 
-    const decreaseQuantity = (
-        productId
-    ) => {
+const decreaseQuantity = (productId) => {
 
-        setCart(
-            currentCart =>
+    setCart(prevCart =>
+        prevCart
+            .map(item => {
 
-                currentCart
+                const id =
+                    item._id ||
+                    item.id;
 
-                    .map(
-                        item =>
+                if (id === productId) {
 
-                            getProductId(
-                                item
-                            ) === productId
+                    return {
+                        ...item,
+                        quantity:
+                            Number(item.quantity || 1) - 1
+                    };
 
-                                ? {
+                }
 
-                                    ...item,
+                return item;
 
-                                    quantity:
-                                        Number(
-                                            item.quantity || 0
-                                        ) - 1
+            })
+            .filter(
+                item =>
+                    Number(item.quantity || 0) > 0
+            )
+    );
 
-                                }
-
-                                : item
-                    )
-
-                    .filter(
-                        item =>
-                            item.quantity > 0
-                    )
-
-        );
-
-    };
+};;
 
 
 

@@ -25,14 +25,12 @@ function Assistant() {
         cart,
         addToCart,
         removeFromCart,
-        clearCart
+        clearCart,
+        increaseQuantity,
+        decreaseQuantity
     } =
         useCart();
 
-
-    // ==================================================
-    // WELCOME MESSAGE
-    // ==================================================
 
     const welcomeMessage = {
 
@@ -45,34 +43,34 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // STATE
-    // ==================================================
-
     const [
         isOpen,
         setIsOpen
-    ] = useState(false);
+    ] =
+        useState(false);
 
 
     const [
         message,
         setMessage
-    ] = useState("");
+    ] =
+        useState("");
 
 
     const [
         messages,
         setMessages
-    ] = useState([
-        welcomeMessage
-    ]);
+    ] =
+        useState([
+            welcomeMessage
+        ]);
 
 
     const [
         loading,
         setLoading
-    ] = useState(false);
+    ] =
+        useState(false);
 
 
     // ==================================================
@@ -94,7 +92,7 @@ function Assistant() {
 
 
     // ==================================================
-    // LOAD CHAT HISTORY
+    // LOAD CHAT
     // ==================================================
 
     useEffect(() => {
@@ -182,7 +180,7 @@ function Assistant() {
 
 
     // ==================================================
-    // SAVE CHAT HISTORY
+    // SAVE CHAT
     // ==================================================
 
     useEffect(() => {
@@ -224,7 +222,7 @@ function Assistant() {
 
 
     // ==================================================
-    // SHOW CART REQUEST
+    // SHOW CART DETECTION
     // ==================================================
 
     const isShowCartRequest = (
@@ -265,66 +263,10 @@ function Assistant() {
 
             lower === "cart"
 
-        );
+            ||
 
-    };
+            lower === "my cart"
 
-
-    // ==================================================
-    // CLEAR CART REQUEST
-    // ==================================================
-
-    const isClearCartRequest = (
-        text
-    ) => {
-
-        const lower =
-            text
-                .toLowerCase()
-                .trim();
-
-
-        const patterns = [
-
-            // clear cart
-            /\bclear\s+(my\s+)?cart\b/i,
-
-            // empty cart
-            /\bempty\s+(my\s+)?cart\b/i,
-
-            // remove everything
-            /\bremove\s+everything\s+from\s+(my\s+)?cart\b/i,
-
-            // remove all products
-            /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
-
-            // remove all cart items
-            /\bremove\s+all\s+(my\s+)?cart\s+items\b/i,
-
-            // delete everything
-            /\bdelete\s+everything\s+from\s+(my\s+)?cart\b/i,
-
-            // delete all products
-            /\bdelete\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
-
-            // delete all cart items
-            /\bdelete\s+all\s+(my\s+)?cart\s+items\b/i,
-
-            // basket
-            /\bclear\s+(my\s+)?basket\b/i,
-
-            /\bempty\s+(my\s+)?basket\b/i,
-
-            /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?basket\b/i
-
-        ];
-
-
-        return patterns.some(
-            pattern =>
-                pattern.test(
-                    lower
-                )
         );
 
     };
@@ -454,7 +396,6 @@ function Assistant() {
             message.trim();
 
 
-        // Add user message
         setMessages(
             prev => [
 
@@ -493,80 +434,6 @@ function Assistant() {
 
         }
 
-
-        // ==================================================
-        // CLEAR ALL CART
-        // ==================================================
-
-        if (
-            isClearCartRequest(
-                userMessage
-            )
-        ) {
-
-            console.log(
-                "CLEAR CART REQUEST DETECTED IN ASSISTANT"
-            );
-
-
-            if (
-                !cart ||
-                cart.length === 0
-            ) {
-
-                setMessages(
-                    prev => [
-
-                        ...prev,
-
-                        {
-
-                            sender:
-                                "bot",
-
-                            text:
-                                "🛒 Your cart is already empty."
-
-                        }
-
-                    ]
-                );
-
-                return;
-
-            }
-
-
-            clearCart();
-
-
-            setMessages(
-                prev => [
-
-                    ...prev,
-
-                    {
-
-                        sender:
-                            "bot",
-
-                        text:
-                            "🗑️ All products have been removed from your cart."
-
-                    }
-
-                ]
-            );
-
-
-            return;
-
-        }
-
-
-        // ==================================================
-        // START LOADING
-        // ==================================================
 
         setLoading(true);
 
@@ -619,9 +486,7 @@ function Assistant() {
             );
 
 
-            if (
-                !response.ok
-            ) {
+            if (!response.ok) {
 
                 throw new Error(
 
@@ -682,7 +547,189 @@ function Assistant() {
 
 
             // ==================================================
-            // REMOVE FROM CART
+            // INCREASE QUANTITY
+            // ==================================================
+
+            else if (
+
+                data.action ===
+                "increase_quantity"
+
+                &&
+
+                data.product
+
+            ) {
+
+                console.log(
+                    "INCREASING QUANTITY:",
+                    data.product
+                );
+
+
+                const productId =
+                    data.product._id ||
+                    data.product.id;
+
+
+                const exists =
+                    cart.some(
+
+                        item =>
+
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
+
+                    );
+
+
+                if (!exists) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `ℹ️ ${data.product.name} is not currently in your cart.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
+
+                    increaseQuantity(
+                        productId
+                    );
+
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `➕ ${data.product.name} quantity has been increased.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+            }
+
+
+            // ==================================================
+            // DECREASE QUANTITY
+            // ==================================================
+
+            else if (
+
+                data.action ===
+                "decrease_quantity"
+
+                &&
+
+                data.product
+
+            ) {
+
+                console.log(
+                    "DECREASING QUANTITY:",
+                    data.product
+                );
+
+
+                const productId =
+                    data.product._id ||
+                    data.product.id;
+
+
+                const exists =
+                    cart.some(
+
+                        item =>
+
+                            (
+                                item._id ||
+                                item.id
+                            ) === productId
+
+                    );
+
+
+                if (!exists) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `ℹ️ ${data.product.name} is not currently in your cart.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
+
+                    decreaseQuantity(
+                        productId
+                    );
+
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    `➖ ${data.product.name} quantity has been decreased.`
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+            }
+
+
+            // ==================================================
+            // REMOVE SINGLE PRODUCT
             // ==================================================
 
             else if (
@@ -773,7 +820,7 @@ function Assistant() {
 
 
             // ==================================================
-            // CLEAR CART FROM BACKEND ACTION
+            // CLEAR ENTIRE CART
             // ==================================================
 
             else if (
@@ -784,14 +831,36 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "CLEAR CART ACTION RECEIVED FROM AI"
+                    "CLEARING ENTIRE CART"
                 );
 
 
                 if (
-                    cart &&
-                    cart.length > 0
+                    !cart ||
+                    cart.length === 0
                 ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    "🛒 Your cart is already empty."
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
 
                     clearCart();
 
@@ -815,44 +884,6 @@ function Assistant() {
                     );
 
                 }
-
-                else {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    "🛒 Your cart is already empty."
-
-                            }
-
-                        ]
-                    );
-
-                }
-
-            }
-
-
-            // ==================================================
-            // SHOW CART ACTION
-            // ==================================================
-
-            else if (
-
-                data.action ===
-                "show_cart"
-
-            ) {
-
-                showCart();
 
             }
 
@@ -940,9 +971,7 @@ function Assistant() {
         setMessage("");
 
 
-        if (
-            !user?.id
-        ) {
+        if (!user?.id) {
 
             setMessages([
                 welcomeMessage
@@ -959,9 +988,7 @@ function Assistant() {
 
     const openChat = () => {
 
-        if (
-            !user?.id
-        ) {
+        if (!user?.id) {
 
             setMessages([
                 welcomeMessage
@@ -987,7 +1014,8 @@ function Assistant() {
 
         if (
 
-            e.key === "Enter"
+            e.key ===
+            "Enter"
 
             &&
 
@@ -1037,8 +1065,6 @@ function Assistant() {
                     className="chatbot-container"
                 >
 
-                    {/* HEADER */}
-
                     <div
                         className="chatbot-header"
                     >
@@ -1072,8 +1098,6 @@ function Assistant() {
 
                     </div>
 
-
-                    {/* MESSAGES */}
 
                     <div
                         className="chatbot-messages"
@@ -1121,8 +1145,6 @@ function Assistant() {
 
                     </div>
 
-
-                    {/* INPUT */}
 
                     <div
                         className="chatbot-input"
