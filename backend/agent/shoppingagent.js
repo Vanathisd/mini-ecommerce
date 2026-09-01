@@ -35,9 +35,6 @@ async function askShoppingAgent(message) {
             cleanMessage.toLowerCase();
 
 
-        // ==================================================
-        // GENERAL CONVERSATION
-        // ==================================================
 
         const generalWords = [
             "hello",
@@ -90,15 +87,99 @@ Do not invent products.
         }
 
 
-        // ==================================================
-        // STEP 1
-        // FIND SPECIFIC PRODUCT
-        // ==================================================
-
         const detectedProduct =
             await findProductFromMessage(
                 cleanMessage
             );
+
+        const addToCartRequest =
+            isAddToCartRequest(cleanMessage);
+
+
+        if (
+            addToCartRequest
+        ) {
+
+            console.log(
+                "ADD TO CART REQUEST DETECTED"
+            );
+
+
+            if (!detectedProduct) {
+
+                return {
+                    response:
+                        "Please tell me the product name you want to add to your cart.",
+                    action: "none"
+                };
+
+            }
+
+
+            // Read the latest product from database
+
+            const latestProduct =
+                await getProductDetails(
+                    detectedProduct.name
+                );
+
+
+            if (!latestProduct) {
+
+                return {
+
+                    response:
+                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
+
+                    action: "none"
+
+                };
+
+            }
+
+
+            const stock =
+                Number(latestProduct.stock);
+
+
+            if (
+                !Number.isFinite(stock) ||
+                stock <= 0
+            ) {
+
+                return {
+
+                    response:
+                        `${latestProduct.name} is currently out of stock.`,
+
+                    action: "none"
+
+                };
+
+            }
+
+
+            console.log(
+                "ADDING PRODUCT:",
+                latestProduct.name
+            );
+
+
+            return {
+
+                response:
+                    `${latestProduct.name} is available and ready to be added to your cart.`,
+
+                action:
+                    "add_to_cart",
+
+                product:
+                    latestProduct
+
+            };
+
+        }
+
 
 
         console.log(
@@ -108,11 +189,6 @@ Do not invent products.
                 : "NONE"
         );
 
-
-        // ==================================================
-        // STEP 2
-        // SPECIFIC PRODUCT QUESTION
-        // ==================================================
 
         const specificQuestion =
             isSpecificProductQuestion(
@@ -148,10 +224,6 @@ Do not invent products.
             );
 
 
-            // ==================================================
-            // ALWAYS READ CURRENT PRODUCT
-            // ==================================================
-
             const latestProduct =
                 await getProductDetails(
                     detectedProduct.name
@@ -186,10 +258,6 @@ Do not invent products.
             );
 
 
-            // ==================================================
-            // PRICE + STOCK
-            // ==================================================
-
             if (
                 detailType === "price_stock"
             ) {
@@ -214,10 +282,6 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // PRICE
-            // ==================================================
-
             if (
                 detailType === "price"
             ) {
@@ -228,11 +292,6 @@ Do not invent products.
                 );
 
             }
-
-
-            // ==================================================
-            // STOCK
-            // ==================================================
 
             if (
                 detailType === "stock"
@@ -271,11 +330,6 @@ Do not invent products.
 
             }
 
-
-            // ==================================================
-            // DESCRIPTION
-            // ==================================================
-
             if (
                 detailType === "description"
             ) {
@@ -299,11 +353,6 @@ Do not invent products.
 
             }
 
-
-            // ==================================================
-            // CATEGORY
-            // ==================================================
-
             if (
                 detailType === "category"
             ) {
@@ -316,10 +365,6 @@ Do not invent products.
             }
 
 
-            // ==================================================
-            // SUBCATEGORY
-            // ==================================================
-
             if (
                 detailType === "subcategory"
             ) {
@@ -331,10 +376,6 @@ Do not invent products.
 
             }
 
-
-            // ==================================================
-            // FULL DETAILS
-            // ==================================================
 
             const stock =
                 Number(
@@ -386,11 +427,6 @@ Do not invent products.
 
         }
 
-
-        // ==================================================
-        // STEP 3
-        // ASK OLLAMA FOR SHOPPING INTENT
-        // ==================================================
 
         const aiResponse =
             await ollama.chat({
@@ -686,11 +722,6 @@ JSON FORMAT
         );
 
 
-        // ==================================================
-        // STEP 4
-        // PARSE JSON
-        // ==================================================
-
         let intent;
 
 
@@ -727,11 +758,6 @@ JSON FORMAT
         }
 
 
-        // ==================================================
-        // STEP 5
-        // NEW ARRIVAL DETECTION
-        // ==================================================
-
         const newArrivalWords = [
 
             "new arrival",
@@ -767,10 +793,6 @@ JSON FORMAT
         }
 
 
-        // ==================================================
-        // STEP 6
-        // CATEGORY MAPPING
-        // ==================================================
 
         if (
             !isNewArrivalRequest
@@ -871,11 +893,6 @@ JSON FORMAT
         }
 
 
-        // ==================================================
-        // STEP 7
-        // SORT DETECTION
-        // ==================================================
-
         const lower = cleanMessage.toLowerCase();
 
         if (
@@ -895,11 +912,7 @@ JSON FORMAT
         ) {
             intent.sortBy = "rating_desc";
         }
-        
-        // ==================================================
-        // STEP 8
-        // RECOMMENDATION DETECTION
-        // ==================================================
+ 
 
         const recommendationWords = [
 
@@ -921,11 +934,6 @@ JSON FORMAT
             );
 
 
-        // ==================================================
-        // STEP 9
-        // NUMBER DETECTION
-        // ==================================================
-
         const numberMatch =
             lowerMessage.match(
                 /\b([1-3])\b/
@@ -936,13 +944,6 @@ JSON FORMAT
             Boolean(numberMatch);
 
 
-        // ==================================================
-        // STEP 10
-        // SHOW ALL
-        // ==================================================
-
-        // Ranking requests should return only the
-        // best matching product.
 
         if (
             intent.sortBy
@@ -978,12 +979,6 @@ JSON FORMAT
 
         }
 
-
-        // ==================================================
-        // STEP 11
-        // GENERAL FLAG
-        // ==================================================
-
         if (
 
             intent.category ||
@@ -1011,11 +1006,6 @@ JSON FORMAT
             intent
         );
 
-
-        // ==================================================
-        // STEP 12
-        // DATABASE SEARCH
-        // ==================================================
 
         const products =
             await searchProducts({
@@ -1050,11 +1040,6 @@ JSON FORMAT
         );
 
 
-        // ==================================================
-        // STEP 13
-        // NO PRODUCTS
-        // ==================================================
-
         if (
             !products ||
             products.length === 0
@@ -1080,11 +1065,6 @@ JSON FORMAT
         }
 
 
-        // ==================================================
-        // STEP 14
-        // SELECT PRODUCTS
-        // ==================================================
-
         let productsToShow;
 
 
@@ -1092,8 +1072,6 @@ JSON FORMAT
             intent.sortBy
         ) {
 
-            // For cheapest / most expensive /
-            // highest rated, show only the top result.
 
             productsToShow =
                 products.slice(0, 1);
@@ -1116,11 +1094,6 @@ JSON FORMAT
 
         }
 
-
-        // ==================================================
-        // STEP 15
-        // RESPONSE HEADER
-        // ==================================================
 
         let responseText;
 
@@ -1199,11 +1172,6 @@ JSON FORMAT
         }
 
 
-        // ==================================================
-        // STEP 16
-        // DISPLAY PRODUCTS
-        // ==================================================
-
         productsToShow.forEach(
             (product, index) => {
 
@@ -1229,8 +1197,6 @@ JSON FORMAT
                     `   Availability: ${availability}\n`;
 
 
-                // Show rating only for rating-based
-                // requests.
 
                 if (
                     intent.sortBy === "rating_desc"
@@ -1268,10 +1234,6 @@ JSON FORMAT
 
 }
 
-
-// ======================================================
-// SPECIFIC PRODUCT QUESTION
-// ======================================================
 
 function isSpecificProductQuestion(message) {
 
@@ -1314,10 +1276,6 @@ function isSpecificProductQuestion(message) {
 
 }
 
-
-// ======================================================
-// DETAIL TYPE
-// ======================================================
 
 function detectDetailType(message) {
 
@@ -1401,6 +1359,34 @@ function detectDetailType(message) {
 
 
     return "full";
+
+}
+
+function isAddToCartRequest(message) {
+
+    const text =
+        String(message || "")
+            .toLowerCase()
+            .trim();
+
+
+    const addWords = [
+        "add to cart",
+        "add it to cart",
+        "add this to cart",
+        "put in cart",
+        "put it in cart",
+        "add to my cart",
+        "add it to my cart",
+        "add this to my cart",
+        "buy this",
+        "i want to buy"
+    ];
+
+
+    return addWords.some(
+        word => text.includes(word)
+    );
 
 }
 
