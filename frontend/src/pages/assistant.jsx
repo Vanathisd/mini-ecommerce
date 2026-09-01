@@ -264,6 +264,18 @@ function Assistant() {
 
     };
 
+    const closeChat = () => {
+    setIsOpen(false);
+
+    setMessages([
+        {
+            sender: "bot",
+            text: "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
+        }
+    ]);
+
+    setMessage("");
+};
 
     const handleKeyDown = (e) => {
 

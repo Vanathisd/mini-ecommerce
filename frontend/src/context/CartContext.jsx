@@ -1,392 +1,182 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState
-} from "react";
+const express = require("express");
 
-import { useAuth } from "./authContext.jsx";
+const {
+    askShoppingAgent
+} = require("../agent/shoppingagent");
 
+const {
+    findProductFromMessage,
+    getProductDetails
+} = require("../agent/producttools");
 
-const CartContext = createContext();
-
-
-export function CartProvider({ children }) {
-
-    const { user } = useAuth();
-
-    const [cart, setCart] = useState([]);
-
-    const [cartLoaded, setCartLoaded] = useState(false);
+const router = express.Router();
 
 
-    // ==================================================
-    // GET PRODUCT ID
-    // ==================================================
+router.post("/chat", async (req, res) => {
 
-    const getProductId = (product) => {
+    try {
 
-        return product._id || product.id;
+        const { message } = req.body;
 
-    };
+        if (!message) {
 
-
-    // ==================================================
-    // GET USER-SPECIFIC CART KEY
-    // ==================================================
-
-    const getCartKey = () => {
-
-        if (user?.id) {
-
-            return `cart_${user.id}`;
+            return res.status(400).json({
+                message: "Message is required"
+            });
 
         }
 
-        return "guest_cart";
+        const response =
+            await askShoppingAgent(message);
 
-    };
+        res.json({
+            response
+        });
 
+    } catch (error) {
 
-    // ==================================================
-    // LOAD CART WHEN USER CHANGES
-    // ==================================================
-
-    useEffect(() => {
-
-        setCartLoaded(false);
-
-
-        const cartKey =
-            getCartKey();
-
-
-        const savedCart =
-            localStorage.getItem(cartKey);
-
-
-        if (savedCart) {
-
-            try {
-
-                const parsedCart =
-                    JSON.parse(savedCart);
-
-
-                setCart(
-                    Array.isArray(parsedCart)
-                        ? parsedCart
-                        : []
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "Failed to load cart:",
-                    error
-                );
-
-                setCart([]);
-
-            }
-
-        }
-
-        else {
-
-            setCart([]);
-
-        }
-
-
-        setCartLoaded(true);
-
-    }, [user]);
-
-
-    // ==================================================
-    // SAVE CART
-    // ==================================================
-
-    useEffect(() => {
-
-        if (!cartLoaded) {
-
-            return;
-
-        }
-
-
-        const cartKey =
-            getCartKey();
-
-
-        localStorage.setItem(
-            cartKey,
-            JSON.stringify(cart)
+        console.error(
+            "AI Agent Error:",
+            error
         );
 
-    }, [
-        cart,
-        user,
-        cartLoaded
-    ]);
+        res.status(500).json({
+            message:
+                "Something went wrong with the AI agent"
+        });
+
+    }
+
+});
 
 
-    // ==================================================
-    // ADD TO CART
-    // ==================================================
 
-    const addToCart = (
-        product,
-        quantity = 1
-    ) => {
+router.post("/cart-action", async (req, res) => {
 
-        const productId =
-            getProductId(product);
+    try {
 
+        const { message } = req.body;
 
-        const requestedQuantity =
-            Number(quantity);
+        if (!message) {
 
+            return res.status(400).json({
+                message: "Message is required"
+            });
 
-        const validQuantity =
-            Number.isFinite(requestedQuantity) &&
-            requestedQuantity > 0
-                ? Math.floor(requestedQuantity)
-                : 1;
+        }
 
 
-        setCart((currentCart) => {
-
-            const existingProduct =
-                currentCart.find(
-                    (item) =>
-                        getProductId(item) ===
-                        productId
-                );
+        const text =
+            String(message)
+                .toLowerCase()
+                .trim();
 
 
-            // ==================================================
-            // PRODUCT ALREADY EXISTS
-            // ==================================================
-
-            if (existingProduct) {
-
-                return currentCart.map(
-                    (item) => {
-
-                        const itemId =
-                            getProductId(item);
+        const isAddToCart =
+            /\b(add|put|place)\b/i.test(text) &&
+            /\b(cart|basket)\b/i.test(text);
 
 
-                        if (
-                            itemId === productId
-                        ) {
+        if (!isAddToCart) {
 
-                            return {
+            return res.json({
+                action: "none"
+            });
 
-                                ...item,
-
-                                quantity:
-                                    item.quantity +
-                                    validQuantity
-
-                            };
-
-                        }
+        }
 
 
-                        return item;
-
-                    }
-                );
-
-            }
+        const detectedProduct =
+            await findProductFromMessage(message);
 
 
-            // ==================================================
-            // NEW PRODUCT
-            // ==================================================
+        if (!detectedProduct) {
 
-            return [
+            return res.json({
 
-                ...currentCart,
+                action: "none",
 
-                {
+                message:
+                    "Sorry, I couldn't find that product in VELORA."
 
-                    ...product,
+            });
 
-                    quantity:
-                        validQuantity
+        }
 
-                }
 
-            ];
+        const latestProduct =
+            await getProductDetails(
+                detectedProduct.name
+            );
+
+
+        if (!latestProduct) {
+
+            return res.json({
+
+                action: "none",
+
+                message:
+                    "Sorry, I couldn't find that product in VELORA."
+
+            });
+
+        }
+
+
+        // Check stock
+
+        const stock =
+            Number(latestProduct.stock);
+
+
+        if (
+            !Number.isFinite(stock) ||
+            stock <= 0
+        ) {
+
+            return res.json({
+
+                action: "none",
+
+                message:
+                    `${latestProduct.name} is currently out of stock.`
+
+            });
+
+        }
+
+
+
+        return res.json({
+
+            action: "add_to_cart",
+
+            product: latestProduct,
+
+            message:
+                `${latestProduct.name} has been added to your cart.`
 
         });
 
-    };
 
+    } catch (error) {
 
-    // ==================================================
-    // REMOVE FROM CART
-    // ==================================================
-
-    const removeFromCart = (id) => {
-
-        setCart((currentCart) =>
-
-            currentCart.filter(
-                (item) =>
-                    getProductId(item) !== id
-            )
-
+        console.error(
+            "Cart Action Error:",
+            error
         );
 
-    };
+        res.status(500).json({
+
+            message:
+                "Unable to process cart action."
+
+        });
+
+    }
+
+});
 
 
-    // ==================================================
-    // INCREASE QUANTITY
-    // ==================================================
-
-    const increaseQuantity = (id) => {
-
-        setCart((currentCart) =>
-
-            currentCart.map(
-                (item) => {
-
-                    const itemId =
-                        getProductId(item);
-
-
-                    return itemId === id
-
-                        ? {
-
-                            ...item,
-
-                            quantity:
-                                item.quantity + 1
-
-                        }
-
-                        : item;
-
-                }
-            )
-
-        );
-
-    };
-
-
-    // ==================================================
-    // DECREASE QUANTITY
-    // ==================================================
-
-    const decreaseQuantity = (id) => {
-
-        setCart((currentCart) =>
-
-            currentCart
-
-                .map(
-                    (item) => {
-
-                        const itemId =
-                            getProductId(item);
-
-
-                        return itemId === id
-
-                            ? {
-
-                                ...item,
-
-                                quantity:
-                                    item.quantity - 1
-
-                            }
-
-                            : item;
-
-                    }
-                )
-
-                .filter(
-                    (item) =>
-                        item.quantity > 0
-                )
-
-        );
-
-    };
-
-
-    // ==================================================
-    // CART TOTAL
-    // ==================================================
-
-    const cartTotal =
-        cart.reduce(
-
-            (total, item) =>
-
-                total +
-                Number(item.price) *
-                item.quantity,
-
-            0
-
-        );
-
-
-    // ==================================================
-    // PROVIDER
-    // ==================================================
-
-    return (
-
-        <CartContext.Provider
-            value={{
-
-                cart,
-
-                addToCart,
-
-                removeFromCart,
-
-                increaseQuantity,
-
-                decreaseQuantity,
-
-                cartTotal
-
-            }}
-        >
-
-            {children}
-
-        </CartContext.Provider>
-
-    );
-
-}
-
-
-// ==================================================
-// USE CART
-// ==================================================
-
-export function useCart() {
-
-    return useContext(
-        CartContext
-    );
-
-}
+module.exports = router;
