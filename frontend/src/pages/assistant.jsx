@@ -30,6 +30,10 @@ function Assistant() {
         useCart();
 
 
+    // ==================================================
+    // WELCOME MESSAGE
+    // ==================================================
+
     const welcomeMessage = {
 
         sender:
@@ -39,6 +43,11 @@ function Assistant() {
             "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
 
     };
+
+
+    // ==================================================
+    // STATE
+    // ==================================================
 
     const [
         isOpen,
@@ -65,6 +74,11 @@ function Assistant() {
         setLoading
     ] = useState(false);
 
+
+    // ==================================================
+    // CHAT KEY
+    // ==================================================
+
     const getChatKey = () => {
 
         if (user?.id) {
@@ -78,6 +92,10 @@ function Assistant() {
 
     };
 
+
+    // ==================================================
+    // LOAD CHAT HISTORY
+    // ==================================================
 
     useEffect(() => {
 
@@ -124,7 +142,9 @@ function Assistant() {
 
 
             if (
-                Array.isArray(parsedChat) &&
+                Array.isArray(
+                    parsedChat
+                ) &&
                 parsedChat.length > 0
             ) {
 
@@ -160,6 +180,10 @@ function Assistant() {
 
     }, [user]);
 
+
+    // ==================================================
+    // SAVE CHAT HISTORY
+    // ==================================================
 
     useEffect(() => {
 
@@ -199,6 +223,10 @@ function Assistant() {
     ]);
 
 
+    // ==================================================
+    // SHOW CART REQUEST
+    // ==================================================
+
     const isShowCartRequest = (
         text
     ) => {
@@ -229,12 +257,82 @@ function Assistant() {
 
             ||
 
+            /\bcheck\s+(my\s+)?cart\b/i.test(
+                lower
+            )
+
+            ||
+
             lower === "cart"
 
         );
 
     };
 
+
+    // ==================================================
+    // CLEAR CART REQUEST
+    // ==================================================
+
+    const isClearCartRequest = (
+        text
+    ) => {
+
+        const lower =
+            text
+                .toLowerCase()
+                .trim();
+
+
+        const patterns = [
+
+            // clear cart
+            /\bclear\s+(my\s+)?cart\b/i,
+
+            // empty cart
+            /\bempty\s+(my\s+)?cart\b/i,
+
+            // remove everything
+            /\bremove\s+everything\s+from\s+(my\s+)?cart\b/i,
+
+            // remove all products
+            /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+
+            // remove all cart items
+            /\bremove\s+all\s+(my\s+)?cart\s+items\b/i,
+
+            // delete everything
+            /\bdelete\s+everything\s+from\s+(my\s+)?cart\b/i,
+
+            // delete all products
+            /\bdelete\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
+
+            // delete all cart items
+            /\bdelete\s+all\s+(my\s+)?cart\s+items\b/i,
+
+            // basket
+            /\bclear\s+(my\s+)?basket\b/i,
+
+            /\bempty\s+(my\s+)?basket\b/i,
+
+            /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?basket\b/i
+
+        ];
+
+
+        return patterns.some(
+            pattern =>
+                pattern.test(
+                    lower
+                )
+        );
+
+    };
+
+
+    // ==================================================
+    // SHOW CART
+    // ==================================================
 
     const showCart = () => {
 
@@ -312,7 +410,6 @@ function Assistant() {
 
 
         cartText +=
-
             `Total: ₹${total.toLocaleString("en-IN")}`;
 
 
@@ -337,6 +434,10 @@ function Assistant() {
     };
 
 
+    // ==================================================
+    // SEND MESSAGE
+    // ==================================================
+
     const sendMessage = async () => {
 
         if (
@@ -353,6 +454,7 @@ function Assistant() {
             message.trim();
 
 
+        // Add user message
         setMessages(
             prev => [
 
@@ -375,6 +477,10 @@ function Assistant() {
         setMessage("");
 
 
+        // ==================================================
+        // SHOW CART
+        // ==================================================
+
         if (
             isShowCartRequest(
                 userMessage
@@ -387,6 +493,80 @@ function Assistant() {
 
         }
 
+
+        // ==================================================
+        // CLEAR ALL CART
+        // ==================================================
+
+        if (
+            isClearCartRequest(
+                userMessage
+            )
+        ) {
+
+            console.log(
+                "CLEAR CART REQUEST DETECTED IN ASSISTANT"
+            );
+
+
+            if (
+                !cart ||
+                cart.length === 0
+            ) {
+
+                setMessages(
+                    prev => [
+
+                        ...prev,
+
+                        {
+
+                            sender:
+                                "bot",
+
+                            text:
+                                "🛒 Your cart is already empty."
+
+                        }
+
+                    ]
+                );
+
+                return;
+
+            }
+
+
+            clearCart();
+
+
+            setMessages(
+                prev => [
+
+                    ...prev,
+
+                    {
+
+                        sender:
+                            "bot",
+
+                        text:
+                            "🗑️ All products have been removed from your cart."
+
+                    }
+
+                ]
+            );
+
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // START LOADING
+        // ==================================================
 
         setLoading(true);
 
@@ -439,17 +619,24 @@ function Assistant() {
             );
 
 
-            if (!response.ok) {
+            if (
+                !response.ok
+            ) {
 
                 throw new Error(
 
                     data.message ||
+
                     "Something went wrong"
 
                 );
 
             }
 
+
+            // ==================================================
+            // ADD TO CART
+            // ==================================================
 
             if (
 
@@ -492,6 +679,11 @@ function Assistant() {
                 );
 
             }
+
+
+            // ==================================================
+            // REMOVE FROM CART
+            // ==================================================
 
             else if (
 
@@ -579,6 +771,11 @@ function Assistant() {
 
             }
 
+
+            // ==================================================
+            // CLEAR CART FROM BACKEND ACTION
+            // ==================================================
+
             else if (
 
                 data.action ===
@@ -587,36 +784,14 @@ function Assistant() {
             ) {
 
                 console.log(
-                    "CLEARING ENTIRE CART"
+                    "CLEAR CART ACTION RECEIVED FROM AI"
                 );
 
 
                 if (
-                    !cart ||
-                    cart.length === 0
+                    cart &&
+                    cart.length > 0
                 ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    "🛒 Your cart is already empty."
-
-                            }
-
-                        ]
-                    );
-
-                }
-
-                else {
 
                     clearCart();
 
@@ -641,9 +816,50 @@ function Assistant() {
 
                 }
 
+                else {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    "🛒 Your cart is already empty."
+
+                            }
+
+                        ]
+                    );
+
+                }
+
             }
 
 
+            // ==================================================
+            // SHOW CART ACTION
+            // ==================================================
+
+            else if (
+
+                data.action ===
+                "show_cart"
+
+            ) {
+
+                showCart();
+
+            }
+
+
+            // ==================================================
+            // NORMAL RESPONSE
+            // ==================================================
 
             else {
 
@@ -659,6 +875,7 @@ function Assistant() {
 
                             text:
                                 data.response ||
+
                                 "Sorry, I couldn't understand that."
 
                         }
@@ -707,6 +924,10 @@ function Assistant() {
     };
 
 
+    // ==================================================
+    // CLOSE CHAT
+    // ==================================================
+
     const closeChat = () => {
 
         console.log(
@@ -719,7 +940,9 @@ function Assistant() {
         setMessage("");
 
 
-        if (!user?.id) {
+        if (
+            !user?.id
+        ) {
 
             setMessages([
                 welcomeMessage
@@ -730,9 +953,15 @@ function Assistant() {
     };
 
 
+    // ==================================================
+    // OPEN CHAT
+    // ==================================================
+
     const openChat = () => {
 
-        if (!user?.id) {
+        if (
+            !user?.id
+        ) {
 
             setMessages([
                 welcomeMessage
@@ -748,14 +977,17 @@ function Assistant() {
     };
 
 
+    // ==================================================
+    // ENTER KEY
+    // ==================================================
+
     const handleKeyDown = (
         e
     ) => {
 
         if (
 
-            e.key ===
-            "Enter"
+            e.key === "Enter"
 
             &&
 
@@ -771,6 +1003,10 @@ function Assistant() {
 
     };
 
+
+    // ==================================================
+    // UI
+    // ==================================================
 
     return (
 
