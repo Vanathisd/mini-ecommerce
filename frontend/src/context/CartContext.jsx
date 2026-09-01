@@ -7,7 +7,9 @@ import {
 
 import { useAuth } from "./authContext.jsx";
 
+
 const CartContext = createContext();
+
 
 export function CartProvider({ children }) {
 
@@ -18,32 +20,50 @@ export function CartProvider({ children }) {
     const [cartLoaded, setCartLoaded] = useState(false);
 
 
+    // ==================================================
     // GET PRODUCT ID
+    // ==================================================
+
     const getProductId = (product) => {
+
         return product._id || product.id;
+
     };
 
 
+    // ==================================================
     // GET USER-SPECIFIC CART KEY
+    // ==================================================
+
     const getCartKey = () => {
 
         if (user?.id) {
+
             return `cart_${user.id}`;
+
         }
 
         return "guest_cart";
+
     };
 
 
+    // ==================================================
     // LOAD CART WHEN USER CHANGES
+    // ==================================================
+
     useEffect(() => {
 
         setCartLoaded(false);
 
-        const cartKey = getCartKey();
+
+        const cartKey =
+            getCartKey();
+
 
         const savedCart =
             localStorage.getItem(cartKey);
+
 
         if (savedCart) {
 
@@ -52,13 +72,16 @@ export function CartProvider({ children }) {
                 const parsedCart =
                     JSON.parse(savedCart);
 
+
                 setCart(
                     Array.isArray(parsedCart)
                         ? parsedCart
                         : []
                 );
 
-            } catch (error) {
+            }
+
+            catch (error) {
 
                 console.error(
                     "Failed to load cart:",
@@ -69,39 +92,72 @@ export function CartProvider({ children }) {
 
             }
 
-        } else {
+        }
+
+        else {
 
             setCart([]);
 
         }
+
 
         setCartLoaded(true);
 
     }, [user]);
 
 
+    // ==================================================
     // SAVE CART
+    // ==================================================
+
     useEffect(() => {
 
         if (!cartLoaded) {
+
             return;
+
         }
 
-        const cartKey = getCartKey();
+
+        const cartKey =
+            getCartKey();
+
 
         localStorage.setItem(
             cartKey,
             JSON.stringify(cart)
         );
 
-    }, [cart, user, cartLoaded]);
+    }, [
+        cart,
+        user,
+        cartLoaded
+    ]);
 
 
+    // ==================================================
     // ADD TO CART
-    const addToCart = (product) => {
+    // ==================================================
+
+    const addToCart = (
+        product,
+        quantity = 1
+    ) => {
 
         const productId =
             getProductId(product);
+
+
+        const requestedQuantity =
+            Number(quantity);
+
+
+        const validQuantity =
+            Number.isFinite(requestedQuantity) &&
+            requestedQuantity > 0
+                ? Math.floor(requestedQuantity)
+                : 1;
+
 
         setCart((currentCart) => {
 
@@ -113,32 +169,61 @@ export function CartProvider({ children }) {
                 );
 
 
+            // ==================================================
+            // PRODUCT ALREADY EXISTS
+            // ==================================================
+
             if (existingProduct) {
 
-                return currentCart.map((item) => {
+                return currentCart.map(
+                    (item) => {
 
-                    const itemId =
-                        getProductId(item);
+                        const itemId =
+                            getProductId(item);
 
-                    return itemId === productId
-                        ? {
-                            ...item,
-                            quantity:
-                                item.quantity + 1
+
+                        if (
+                            itemId === productId
+                        ) {
+
+                            return {
+
+                                ...item,
+
+                                quantity:
+                                    item.quantity +
+                                    validQuantity
+
+                            };
+
                         }
-                        : item;
 
-                });
+
+                        return item;
+
+                    }
+                );
 
             }
 
 
+            // ==================================================
+            // NEW PRODUCT
+            // ==================================================
+
             return [
+
                 ...currentCart,
+
                 {
+
                     ...product,
-                    quantity: 1
+
+                    quantity:
+                        validQuantity
+
                 }
+
             ];
 
         });
@@ -146,7 +231,10 @@ export function CartProvider({ children }) {
     };
 
 
+    // ==================================================
     // REMOVE FROM CART
+    // ==================================================
+
     const removeFromCart = (id) => {
 
         setCart((currentCart) =>
@@ -161,51 +249,75 @@ export function CartProvider({ children }) {
     };
 
 
+    // ==================================================
     // INCREASE QUANTITY
+    // ==================================================
+
     const increaseQuantity = (id) => {
 
         setCart((currentCart) =>
 
-            currentCart.map((item) => {
+            currentCart.map(
+                (item) => {
 
-                const itemId =
-                    getProductId(item);
+                    const itemId =
+                        getProductId(item);
 
-                return itemId === id
-                    ? {
-                        ...item,
-                        quantity:
-                            item.quantity + 1
-                    }
-                    : item;
 
-            })
+                    return itemId === id
+
+                        ? {
+
+                            ...item,
+
+                            quantity:
+                                item.quantity + 1
+
+                        }
+
+                        : item;
+
+                }
+            )
 
         );
 
     };
 
 
+    // ==================================================
     // DECREASE QUANTITY
+    // ==================================================
+
     const decreaseQuantity = (id) => {
 
         setCart((currentCart) =>
 
             currentCart
-                .map((item) => {
 
-                    const itemId =
-                        getProductId(item);
+                .map(
+                    (item) => {
 
-                    return itemId === id
-                        ? {
-                            ...item,
-                            quantity:
-                                item.quantity - 1
-                        }
-                        : item;
+                        const itemId =
+                            getProductId(item);
 
-                })
+
+                        return itemId === id
+
+                            ? {
+
+                                ...item,
+
+                                quantity:
+                                    item.quantity - 1
+
+                            }
+
+                            : item;
+
+                    }
+                )
+
                 .filter(
                     (item) =>
                         item.quantity > 0
@@ -216,29 +328,45 @@ export function CartProvider({ children }) {
     };
 
 
+    // ==================================================
     // CART TOTAL
-    const cartTotal = cart.reduce(
+    // ==================================================
 
-        (total, item) =>
-            total +
-            Number(item.price) *
-            item.quantity,
+    const cartTotal =
+        cart.reduce(
 
-        0
+            (total, item) =>
 
-    );
+                total +
+                Number(item.price) *
+                item.quantity,
 
+            0
+
+        );
+
+
+    // ==================================================
+    // PROVIDER
+    // ==================================================
 
     return (
 
         <CartContext.Provider
             value={{
+
                 cart,
+
                 addToCart,
+
                 removeFromCart,
+
                 increaseQuantity,
+
                 decreaseQuantity,
+
                 cartTotal
+
             }}
         >
 
@@ -251,8 +379,14 @@ export function CartProvider({ children }) {
 }
 
 
+// ==================================================
+// USE CART
+// ==================================================
+
 export function useCart() {
 
-    return useContext(CartContext);
+    return useContext(
+        CartContext
+    );
 
 }
