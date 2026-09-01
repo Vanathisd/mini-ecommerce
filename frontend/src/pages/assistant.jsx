@@ -6,13 +6,11 @@ import {
     FaPaperPlane
 } from "react-icons/fa";
 
-
 import { useAuth } from "../context/authContext.jsx";
 
 import {
     useCart
 } from "../context/CartContext.jsx";
-
 
 import "../styles/assistant.css";
 
@@ -26,20 +24,21 @@ function Assistant() {
     const {
         cart,
         addToCart,
-        removeFromCart
+        removeFromCart,
+        clearCart
     } =
         useCart();
 
 
     const welcomeMessage = {
 
-        sender: "bot",
+        sender:
+            "bot",
 
         text:
             "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
 
     };
-
 
     const [
         isOpen,
@@ -66,11 +65,6 @@ function Assistant() {
         setLoading
     ] = useState(false);
 
-
-    // ==================================================
-    // USER CHAT KEY
-    // ==================================================
-
     const getChatKey = () => {
 
         if (user?.id) {
@@ -84,10 +78,6 @@ function Assistant() {
 
     };
 
-
-    // ==================================================
-    // LOAD CHAT
-    // ==================================================
 
     useEffect(() => {
 
@@ -134,9 +124,7 @@ function Assistant() {
 
 
             if (
-                Array.isArray(
-                    parsedChat
-                ) &&
+                Array.isArray(parsedChat) &&
                 parsedChat.length > 0
             ) {
 
@@ -172,10 +160,6 @@ function Assistant() {
 
     }, [user]);
 
-
-    // ==================================================
-    // SAVE CHAT
-    // ==================================================
 
     useEffect(() => {
 
@@ -215,10 +199,6 @@ function Assistant() {
     ]);
 
 
-    // ==================================================
-    // SHOW CART DETECTION
-    // ==================================================
-
     const isShowCartRequest = (
         text
     ) => {
@@ -256,10 +236,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // SHOW CART
-    // ==================================================
-
     const showCart = () => {
 
         if (
@@ -274,7 +250,8 @@ function Assistant() {
 
                     {
 
-                        sender: "bot",
+                        sender:
+                            "bot",
 
                         text:
                             "🛒 Your cart is currently empty."
@@ -294,7 +271,10 @@ function Assistant() {
 
 
         cart.forEach(
-            (item, index) => {
+            (
+                item,
+                index
+            ) => {
 
                 cartText +=
 
@@ -311,12 +291,17 @@ function Assistant() {
         const total =
             cart.reduce(
 
-                (sum, item) =>
+                (
+                    sum,
+                    item
+                ) =>
 
                     sum +
+
                     Number(
                         item.price || 0
                     ) *
+
                     Number(
                         item.quantity || 0
                     ),
@@ -327,6 +312,7 @@ function Assistant() {
 
 
         cartText +=
+
             `Total: ₹${total.toLocaleString("en-IN")}`;
 
 
@@ -337,7 +323,8 @@ function Assistant() {
 
                 {
 
-                    sender: "bot",
+                    sender:
+                        "bot",
 
                     text:
                         cartText
@@ -349,10 +336,6 @@ function Assistant() {
 
     };
 
-
-    // ==================================================
-    // SEND MESSAGE
-    // ==================================================
 
     const sendMessage = async () => {
 
@@ -370,10 +353,6 @@ function Assistant() {
             message.trim();
 
 
-        // ==================================================
-        // SHOW USER MESSAGE
-        // ==================================================
-
         setMessages(
             prev => [
 
@@ -381,7 +360,8 @@ function Assistant() {
 
                 {
 
-                    sender: "user",
+                    sender:
+                        "user",
 
                     text:
                         userMessage
@@ -394,10 +374,6 @@ function Assistant() {
 
         setMessage("");
 
-
-        // ==================================================
-        // SHOW CART
-        // ==================================================
 
         if (
             isShowCartRequest(
@@ -430,7 +406,8 @@ function Assistant() {
 
                     {
 
-                        method: "POST",
+                        method:
+                            "POST",
 
                         headers: {
 
@@ -439,12 +416,13 @@ function Assistant() {
 
                         },
 
-                        body: JSON.stringify({
+                        body:
+                            JSON.stringify({
 
-                            message:
-                                userMessage
+                                message:
+                                    userMessage
 
-                        })
+                            })
 
                     }
 
@@ -472,10 +450,6 @@ function Assistant() {
 
             }
 
-
-            // ==================================================
-            // ADD TO CART
-            // ==================================================
 
             if (
 
@@ -506,7 +480,8 @@ function Assistant() {
 
                         {
 
-                            sender: "bot",
+                            sender:
+                                "bot",
 
                             text:
                                 `✅ ${data.product.name} has been added to your cart.`
@@ -517,11 +492,6 @@ function Assistant() {
                 );
 
             }
-
-
-            // ==================================================
-            // REMOVE FROM CART
-            // ==================================================
 
             else if (
 
@@ -545,9 +515,6 @@ function Assistant() {
                     data.product.id;
 
 
-                // Check whether product exists
-                // in current cart.
-
                 const exists =
                     cart.some(
 
@@ -570,7 +537,8 @@ function Assistant() {
 
                             {
 
-                                sender: "bot",
+                                sender:
+                                    "bot",
 
                                 text:
                                     `ℹ️ ${data.product.name} is not currently in your cart.`
@@ -596,7 +564,8 @@ function Assistant() {
 
                             {
 
-                                sender: "bot",
+                                sender:
+                                    "bot",
 
                                 text:
                                     `🗑️ ${data.product.name} has been removed from your cart.`
@@ -610,10 +579,71 @@ function Assistant() {
 
             }
 
+            else if (
 
-            // ==================================================
-            // NORMAL RESPONSE
-            // ==================================================
+                data.action ===
+                "clear_cart"
+
+            ) {
+
+                console.log(
+                    "CLEARING ENTIRE CART"
+                );
+
+
+                if (
+                    !cart ||
+                    cart.length === 0
+                ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    "🛒 Your cart is already empty."
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+                else {
+
+                    clearCart();
+
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    "🗑️ All products have been removed from your cart."
+
+                            }
+
+                        ]
+                    );
+
+                }
+
+            }
+
+
 
             else {
 
@@ -624,7 +654,8 @@ function Assistant() {
 
                         {
 
-                            sender: "bot",
+                            sender:
+                                "bot",
 
                             text:
                                 data.response ||
@@ -654,7 +685,8 @@ function Assistant() {
 
                     {
 
-                        sender: "bot",
+                        sender:
+                            "bot",
 
                         text:
                             "Sorry, I'm unable to respond right now. Please try again."
@@ -675,10 +707,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // CLOSE CHAT
-    // ==================================================
-
     const closeChat = () => {
 
         console.log(
@@ -691,8 +719,6 @@ function Assistant() {
         setMessage("");
 
 
-        // Guest = fresh conversation
-
         if (!user?.id) {
 
             setMessages([
@@ -704,13 +730,7 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // OPEN CHAT
-    // ==================================================
-
     const openChat = () => {
-
-        // Guest always starts fresh
 
         if (!user?.id) {
 
@@ -728,17 +748,14 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // ENTER KEY
-    // ==================================================
-
     const handleKeyDown = (
         e
     ) => {
 
         if (
 
-            e.key === "Enter"
+            e.key ===
+            "Enter"
 
             &&
 
@@ -755,10 +772,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // UI
-    // ==================================================
-
     return (
 
         <>
@@ -769,7 +782,9 @@ function Assistant() {
 
                     className="chatbot-button"
 
-                    onClick={openChat}
+                    onClick={
+                        openChat
+                    }
 
                 >
 
@@ -785,6 +800,8 @@ function Assistant() {
                 <div
                     className="chatbot-container"
                 >
+
+                    {/* HEADER */}
 
                     <div
                         className="chatbot-header"
@@ -819,6 +836,8 @@ function Assistant() {
 
                     </div>
 
+
+                    {/* MESSAGES */}
 
                     <div
                         className="chatbot-messages"
@@ -866,6 +885,8 @@ function Assistant() {
 
                     </div>
 
+
+                    {/* INPUT */}
 
                     <div
                         className="chatbot-input"

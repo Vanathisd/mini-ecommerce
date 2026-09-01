@@ -153,9 +153,6 @@ export function CartProvider({ children }) {
     ]);
 
 
-    // ==================================================
-    // ADD TO CART
-    // ==================================================
 
     const addToCart = (
         product,
@@ -216,9 +213,6 @@ export function CartProvider({ children }) {
                     );
 
 
-                // ==================================================
-                // ALREADY IN CART
-                // ==================================================
 
                 if (existingProduct) {
 
@@ -254,10 +248,6 @@ export function CartProvider({ children }) {
                 }
 
 
-                // ==================================================
-                // NEW PRODUCT
-                // ==================================================
-
                 return [
 
                     ...currentCart,
@@ -279,9 +269,11 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // REMOVE FROM CART
-    // ==================================================
+const clearCart = () => {
+
+    setCart([]);
+
+};
 
     const removeFromCart = (
         productId
@@ -308,10 +300,6 @@ export function CartProvider({ children }) {
 
     };
 
-
-    // ==================================================
-    // INCREASE
-    // ==================================================
 
     const increaseQuantity = (
         productId
@@ -345,10 +333,6 @@ export function CartProvider({ children }) {
 
     };
 
-
-    // ==================================================
-    // DECREASE
-    // ==================================================
 
     const decreaseQuantity = (
         productId
@@ -390,9 +374,6 @@ export function CartProvider({ children }) {
     };
 
 
-    // ==================================================
-    // CART TOTAL
-    // ==================================================
 
     const cartTotal =
         cart.reduce(
@@ -427,7 +408,9 @@ export function CartProvider({ children }) {
 
                 decreaseQuantity,
 
-                cartTotal
+                cartTotal,
+
+                clearCart
 
             }}
         >
