@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import {useNavigate} from "react-router-dom";
 
 import {
     FaComments,
@@ -20,7 +21,8 @@ function Assistant() {
     const { user } =
         useAuth();
 
-
+    const navigate =
+        useNavigate();
     const {
         cart,
         addToCart,
@@ -497,7 +499,82 @@ function Assistant() {
 
             }
 
+            // ==================================================
+            // CHECKOUT
+            // ==================================================
 
+            if (
+                data.action ===
+                "checkout"
+            ) {
+
+                console.log(
+                    "CHECKOUT REQUEST"
+                );
+
+
+                if (
+                    !cart ||
+                    cart.length === 0
+                ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+
+                                sender:
+                                    "bot",
+
+                                text:
+                                    "🛒 Your cart is empty. Please add some products before checkout."
+
+                            }
+
+                        ]
+                    );
+
+                    return;
+
+                }
+
+
+                setMessages(
+                    prev => [
+
+                        ...prev,
+
+                        {
+
+                            sender:
+                                "bot",
+
+                            text:
+                                "🛍️ Taking you to checkout..."
+
+                        }
+
+                    ]
+                );
+
+
+                setTimeout(
+                    () => {
+
+                        navigate(
+                            "/checkout"
+                        );
+
+                    },
+                    500
+                );
+
+
+                return;
+
+            }
             // ==================================================
             // ADD TO CART
             // ==================================================
