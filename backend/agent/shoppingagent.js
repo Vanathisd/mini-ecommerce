@@ -26,6 +26,10 @@ async function askShoppingAgent(message) {
         }
 
 
+        // ==========================================
+        // GREETING
+        // ==========================================
+
         if (isGreeting(cleanMessage)) {
 
             const greetingResponse = await ollama.chat({
@@ -52,6 +56,10 @@ async function askShoppingAgent(message) {
         }
 
 
+        // ==========================================
+        // CLEAR CART
+        // ==========================================
+
         if (isClearCartRequest(cleanMessage)) {
 
             return {
@@ -59,6 +67,11 @@ async function askShoppingAgent(message) {
                 action: "clear_cart"
             };
         }
+
+
+        // ==========================================
+        // CHECKOUT
+        // ==========================================
 
         if (isCheckoutRequest(cleanMessage)) {
 
@@ -68,6 +81,11 @@ async function askShoppingAgent(message) {
             };
         }
 
+
+        // ==========================================
+        // SHOW MY ORDERS
+        // ==========================================
+
         if (isShowOrdersRequest(cleanMessage)) {
 
             return {
@@ -75,6 +93,11 @@ async function askShoppingAgent(message) {
                 action: "show_orders"
             };
         }
+
+
+        // ==========================================
+        // DECREASE CART QUANTITY
+        // ==========================================
 
         const decreaseCartRequest =
             isDecreaseCartRequest(cleanMessage);
@@ -142,6 +165,11 @@ async function askShoppingAgent(message) {
                 product: latestProduct
             };
         }
+
+
+        // ==========================================
+        // INCREASE CART QUANTITY
+        // ==========================================
 
         const increaseCartRequest =
             isIncreaseCartRequest(cleanMessage);
@@ -221,6 +249,11 @@ async function askShoppingAgent(message) {
                 product: latestProduct
             };
         }
+
+
+        // ==========================================
+        // ADD TO CART
+        // ==========================================
 
         const addToCartRequest =
             isAddToCartRequest(cleanMessage);
@@ -305,6 +338,7 @@ async function askShoppingAgent(message) {
                         product.stock <= 0
                 );
 
+
             if (outOfStockProducts.length > 0) {
 
                 const outOfStockNames =
@@ -327,6 +361,7 @@ async function askShoppingAgent(message) {
 
             let response;
 
+
             if (productNames.length === 1) {
 
                 response =
@@ -345,6 +380,7 @@ async function askShoppingAgent(message) {
                         .join(", ")} and ${productNames.at(-1)} have been added to your cart.`;
             }
 
+
             return {
                 response,
                 action: "add_to_cart",
@@ -352,6 +388,10 @@ async function askShoppingAgent(message) {
             };
         }
 
+
+        // ==========================================
+        // REMOVE FROM CART
+        // ==========================================
 
         const removeFromCartRequest =
             isRemoveFromCartRequest(cleanMessage);
@@ -400,6 +440,7 @@ async function askShoppingAgent(message) {
                 };
             }
 
+
             const latestProducts = [];
 
             for (const product of detectedProducts) {
@@ -427,12 +468,14 @@ async function askShoppingAgent(message) {
                 };
             }
 
+
             const productNames =
                 latestProducts.map(
                     product => product.name
                 );
 
             let response;
+
 
             if (productNames.length === 1) {
 
@@ -461,6 +504,10 @@ async function askShoppingAgent(message) {
         }
 
 
+        // ==========================================
+        // SPECIFIC PRODUCT QUESTION
+        // ==========================================
+
         if (isSpecificProductQuestion(cleanMessage)) {
 
             const product =
@@ -477,8 +524,14 @@ async function askShoppingAgent(message) {
                 };
             }
 
+
             const detailType =
                 detectDetailType(cleanMessage);
+
+
+            // ==========================================
+            // PRICE
+            // ==========================================
 
             if (detailType === "price") {
 
@@ -490,6 +543,11 @@ async function askShoppingAgent(message) {
                 };
             }
 
+
+            // ==========================================
+            // STOCK
+            // ==========================================
+
             if (detailType === "stock") {
 
                 return {
@@ -499,6 +557,11 @@ async function askShoppingAgent(message) {
                     product
                 };
             }
+
+
+            // ==========================================
+            // DESCRIPTION
+            // ==========================================
 
             if (detailType === "description") {
 
@@ -511,6 +574,11 @@ async function askShoppingAgent(message) {
                 };
             }
 
+
+            // ==========================================
+            // GENERAL DETAILS
+            // ==========================================
+
             return {
                 response:
                     `${product.name} is available for ₹${product.price}. ${product.description || ""}`,
@@ -520,13 +588,20 @@ async function askShoppingAgent(message) {
         }
 
 
+        // ==========================================
+        // AI PRODUCT SEARCH
+        // ==========================================
+
         const aiResponse =
             await ollama.chat({
+
                 model: "llama3.2:3b",
 
                 messages: [
+
                     {
                         role: "system",
+
                         content: `
 You are VELORA's shopping assistant.
 
@@ -559,15 +634,22 @@ Rules:
 9. Return JSON only.
 `
                     },
+
                     {
                         role: "user",
                         content: cleanMessage
                     }
+
                 ]
             });
 
 
         let parsed;
+
+
+        // ==========================================
+        // PARSE AI RESPONSE
+        // ==========================================
 
         try {
 
@@ -594,10 +676,15 @@ Rules:
         }
 
 
+        // ==========================================
+        // SEARCH PRODUCTS
+        // ==========================================
+
         if (parsed.intent === "search") {
 
             const products =
                 await searchProducts({
+
                     category:
                         parsed.category || "",
 
@@ -639,6 +726,7 @@ Rules:
             let response =
                 "Here are some products I found:\n\n";
 
+
             limitedProducts.forEach(
                 (product, index) => {
 
@@ -658,12 +746,16 @@ Rules:
         }
 
 
+        // ==========================================
+        // DEFAULT
+        // ==========================================
 
         return {
             response:
                 "Sorry, I couldn't understand your request. Please try again.",
             action: "none"
         };
+
 
     } catch (error) {
 
@@ -681,6 +773,9 @@ Rules:
 }
 
 
+// ==========================================
+// GREETING DETECTION
+// ==========================================
 
 function isGreeting(message) {
 
@@ -688,6 +783,10 @@ function isGreeting(message) {
         .test(message);
 }
 
+
+// ==========================================
+// ADD TO CART DETECTION
+// ==========================================
 
 function isAddToCartRequest(message) {
 
@@ -697,6 +796,10 @@ function isAddToCartRequest(message) {
     );
 }
 
+
+// ==========================================
+// REMOVE FROM CART DETECTION
+// ==========================================
 
 function isRemoveFromCartRequest(message) {
 
@@ -715,6 +818,10 @@ function isRemoveFromCartRequest(message) {
 }
 
 
+// ==========================================
+// CLEAR CART DETECTION
+// ==========================================
+
 function isClearCartRequest(message) {
 
     return (
@@ -725,6 +832,10 @@ function isClearCartRequest(message) {
 }
 
 
+// ==========================================
+// CHECKOUT DETECTION
+// ==========================================
+
 function isCheckoutRequest(message) {
 
     return (
@@ -734,6 +845,11 @@ function isCheckoutRequest(message) {
     );
 }
 
+
+// ==========================================
+// SHOW MY ORDERS DETECTION
+// ==========================================
+
 function isShowOrdersRequest(message) {
 
     return (
@@ -742,6 +858,11 @@ function isShowOrdersRequest(message) {
         /\border\s+history\b/i.test(message)
     );
 }
+
+
+// ==========================================
+// INCREASE CART DETECTION
+// ==========================================
 
 function isIncreaseCartRequest(message) {
 
@@ -755,6 +876,10 @@ function isIncreaseCartRequest(message) {
 }
 
 
+// ==========================================
+// DECREASE CART DETECTION
+// ==========================================
+
 function isDecreaseCartRequest(message) {
 
     return (
@@ -765,6 +890,11 @@ function isDecreaseCartRequest(message) {
         /\bremove\s+\d+\b/i.test(message)
     );
 }
+
+
+// ==========================================
+// EXTRACT ADD QUANTITY
+// ==========================================
 
 function extractAddQuantity(message) {
 
@@ -792,6 +922,10 @@ function extractAddQuantity(message) {
     return 1;
 }
 
+
+// ==========================================
+// EXTRACT QUANTITY
+// ==========================================
 
 function extractQuantity(
     message,
@@ -855,11 +989,16 @@ function extractQuantity(
 }
 
 
+// ==========================================
+// EXTRACT PRODUCT NAME FROM CART MESSAGE
+// ==========================================
+
 function extractProductNameFromCartMessage(
     message
 ) {
 
     let text = message.trim();
+
 
     text =
         text.replace(
@@ -873,6 +1012,7 @@ function extractProductNameFromCartMessage(
             /^\d+\s+/,
             ""
         );
+
 
     text =
         text.replace(
@@ -912,6 +1052,10 @@ function extractProductNameFromCartMessage(
     return text.trim();
 }
 
+
+// ==========================================
+// EXTRACT PRODUCT NAME FROM REMOVE MESSAGE
+// ==========================================
 
 function extractProductNameFromRemoveMessage(
     message
@@ -968,6 +1112,9 @@ function extractProductNameFromRemoveMessage(
 }
 
 
+// ==========================================
+// EXTRACT PRODUCT NAME FROM QUANTITY MESSAGE
+// ==========================================
 
 function extractProductNameFromQuantityMessage(
     message,
@@ -985,11 +1132,13 @@ function extractProductNameFromQuantityMessage(
                 ""
             );
 
+
         text =
             text.replace(
                 /^\d+\s+/,
                 ""
             );
+
 
         text =
             text.replace(
@@ -997,11 +1146,13 @@ function extractProductNameFromQuantityMessage(
                 ""
             );
 
+
         text =
             text.replace(
                 /^another\s+/i,
                 ""
             );
+
 
         text =
             text.replace(
@@ -1019,11 +1170,13 @@ function extractProductNameFromQuantityMessage(
                 ""
             );
 
+
         text =
             text.replace(
                 /^\d+\s+/,
                 ""
             );
+
 
         text =
             text.replace(
@@ -1037,6 +1190,10 @@ function extractProductNameFromQuantityMessage(
 }
 
 
+// ==========================================
+// SPECIFIC PRODUCT QUESTION
+// ==========================================
+
 function isSpecificProductQuestion(message) {
 
     return (
@@ -1047,6 +1204,9 @@ function isSpecificProductQuestion(message) {
 }
 
 
+// ==========================================
+// DETECT DETAIL TYPE
+// ==========================================
 
 function detectDetailType(message) {
 
@@ -1078,7 +1238,9 @@ function detectDetailType(message) {
 }
 
 
-
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = {
     askShoppingAgent
