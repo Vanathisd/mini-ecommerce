@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/authContext.jsx";
+import { useAuth } from "./context/authContext.jsx";
 
 import {
     FiGrid,
@@ -102,7 +102,6 @@ function AdminDashboard() {
                 );
 
 
-                // FETCH ORDERS
                 const ordersResponse =
                     await fetch(
                         "https://mini-ecommerce-backend-yxii.onrender.com/orders/admin/all",

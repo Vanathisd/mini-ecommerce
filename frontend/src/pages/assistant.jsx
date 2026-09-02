@@ -1,29 +1,21 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
-    FaComments,
+    FaRobot,
+    FaPaperPlane,
     FaTimes,
-    FaPaperPlane
+    FaTrash
 } from "react-icons/fa";
 
-import { useAuth } from "../context/authContext.jsx";
-
-import {
-    useCart
-} from "../context/CartContext.jsx";
-
-import "../styles/assistant.css";
-
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 function Assistant() {
 
-    const { user } =
-        useAuth();
+    const navigate = useNavigate();
 
-    const navigate =
-        useNavigate();
+    const { user } = useAuth();
 
     const {
         cart,
@@ -32,975 +24,515 @@ function Assistant() {
         clearCart,
         increaseQuantity,
         decreaseQuantity
-    } =
-        useCart();
-
-    const welcomeMessage = {
-
-        sender: "bot",
-
-        text:
-            "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
-
-    };
-
-    const [
-        isOpen,
-        setIsOpen
-    ] =
-        useState(false);
+    } = useCart();
 
 
-    const [
-        message,
-        setMessage
-    ] =
-        useState("");
+    const [isOpen, setIsOpen] = useState(false);
+
+    const [message, setMessage] = useState("");
+
+    const [messages, setMessages] = useState([]);
+
+    const [loading, setLoading] = useState(false);
 
 
-    const [
-        messages,
-        setMessages
-    ] =
-        useState([
-            welcomeMessage
-        ]);
+    const chatKey = user
+        ? `assistant_chat_${user.id}`
+        : "assistant_chat_guest";
 
 
-    const [
-        loading,
-        setLoading
-    ] =
-        useState(false);
-
-
-    const getChatKey = () => {
-
-        if (user?.id) {
-
-            return `assistant_chat_${user.id}`;
-
-        }
-
-        return null;
-
-    };
 
     useEffect(() => {
 
-        if (!user?.id) {
+        const savedChat = localStorage.getItem(chatKey);
 
-            setMessages([
-                welcomeMessage
-            ]);
+        if (savedChat) {
 
-            setMessage("");
+            try {
 
-            return;
+                setMessages(JSON.parse(savedChat));
 
-        }
+            } catch (error) {
 
-
-        const chatKey =
-            getChatKey();
-
-
-        const savedChat =
-            localStorage.getItem(
-                chatKey
-            );
-
-
-        if (!savedChat) {
-
-            setMessages([
-                welcomeMessage
-            ]);
-
-            return;
-
-        }
-
-
-        try {
-
-            const parsedChat =
-                JSON.parse(
-                    savedChat
+                console.error(
+                    "Failed to load chat:",
+                    error
                 );
-
-
-            if (
-                Array.isArray(parsedChat) &&
-                parsedChat.length > 0
-            ) {
-
-                setMessages(
-                    parsedChat
-                );
-
-            }
-
-            else {
 
                 setMessages([
-                    welcomeMessage
+                    {
+                        sender: "bot",
+                        text: "👋 Hi! Welcome to VELORA. How can I help you?"
+                    }
                 ]);
-
             }
 
-        }
-
-        catch (error) {
-
-            console.error(
-                "Failed to load assistant chat:",
-                error
-            );
-
+        } else {
 
             setMessages([
-                welcomeMessage
+                {
+                    sender: "bot",
+                    text: "👋 Hi! Welcome to VELORA. How can I help you?"
+                }
             ]);
-
         }
 
-    }, [user]);
+    }, [chatKey]);
 
 
     useEffect(() => {
 
-        if (!user?.id) {
+        if (messages.length > 0) {
 
-            return;
-
-        }
-
-
-        if (messages.length === 0) {
-
-            return;
+            localStorage.setItem(
+                chatKey,
+                JSON.stringify(messages)
+            );
 
         }
 
-
-        const chatKey =
-            getChatKey();
+    }, [messages, chatKey]);
 
 
-        localStorage.setItem(
-            chatKey,
-            JSON.stringify(messages)
-        );
-
-    }, [
-        messages,
-        user
-    ]);
-
-
-    const isShowCartRequest = (
-        text
-    ) => {
-
-        const lower =
-            text
-                .toLowerCase()
-                .trim();
-
+    function isShowCartRequest(text) {
 
         return (
-
-            /\b(show|view|see|display)\b.*\b(my\s+)?cart\b/i.test(
-                lower
-            )
-
-            ||
-
-            /\bwhat('?s| is)\b.*\bin\s+(my\s+)?cart\b/i.test(
-                lower
-            )
-
-            ||
-
-            /\bwhat\s+do\s+i\s+have\s+in\s+(my\s+)?cart\b/i.test(
-                lower
-            )
-
-            ||
-
-            /\bcheck\s+(my\s+)?cart\b/i.test(
-                lower
-            )
-
-            ||
-
-            lower === "cart"
-
-            ||
-
-            lower === "my cart"
-
+            /\b(show|view|see|display|check)\b.*\bcart\b/i.test(text) ||
+            /\bmy\s+cart\b/i.test(text) ||
+            /\bcart\b/i.test(text)
         );
 
-    };
+    }
 
 
-    const showCart = () => {
+    function showCart() {
 
-        if (
-            !cart ||
-            cart.length === 0
-        ) {
+        if (!cart || cart.length === 0) {
 
-            setMessages(
-                prev => [
-
-                    ...prev,
-
-                    {
-                        sender: "bot",
-
-                        text:
-                            "🛒 Your cart is currently empty."
-                    }
-
-                ]
-            );
+            setMessages(prev => [
+                ...prev,
+                {
+                    sender: "bot",
+                    text: "🛒 Your cart is empty."
+                }
+            ]);
 
             return;
-
         }
 
 
-        let cartText =
-            "🛒 Here is what's in your cart:\n\n";
+        let cartText = "🛒 Your cart:\n\n";
 
+        cart.forEach((item, index) => {
 
-        cart.forEach(
-            (
-                item,
-                index
-            ) => {
-
-                cartText +=
-
-                    `${index + 1}. ${item.name}\n` +
-
-                    `   Price: ₹${item.price}\n` +
-
-                    `   Quantity: ${item.quantity}\n\n`;
-
-            }
-        );
-
-
-        const total =
-            cart.reduce(
-
-                (
-                    sum,
-                    item
-                ) =>
-
-                    sum +
-
-                    Number(
-                        item.price || 0
-                    ) *
-
-                    Number(
-                        item.quantity || 0
-                    ),
-
-                0
-
+            const price = Number(
+                item.price || 0
             );
+
+            const quantity = Number(
+                item.quantity || 1
+            );
+
+            cartText +=
+                `${index + 1}. ${item.name}\n` +
+                `   Price: ₹${price.toLocaleString("en-IN")}\n` +
+                `   Quantity: ${quantity}\n` +
+                `   Total: ₹${(
+                    price * quantity
+                ).toLocaleString("en-IN")}\n\n`;
+
+        });
+
+
+        const total = cart.reduce(
+            (sum, item) =>
+                sum +
+                Number(item.price || 0) *
+                Number(item.quantity || 1),
+            0
+        );
 
 
         cartText +=
-            `Total: ₹${total.toLocaleString("en-IN")}`;
+            `💰 Cart Total: ₹${total.toLocaleString("en-IN")}`;
 
 
-        setMessages(
-            prev => [
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "bot",
+                text: cartText
+            }
+        ]);
 
-                ...prev,
+    }
 
-                {
-                    sender: "bot",
+    async function sendMessage() {
 
-                    text: cartText
-                }
+        const cleanMessage = message.trim();
 
-            ]
-        );
-
-    };
-
-    const sendMessage = async () => {
-
-        if (
-            !message.trim() ||
-            loading
-        ) {
-
+        if (!cleanMessage || loading) {
             return;
-
         }
 
 
-        const userMessage =
-            message.trim();
 
-        setMessages(
-            prev => [
-
-                ...prev,
-
-                {
-                    sender: "user",
-
-                    text: userMessage
-                }
-
-            ]
-        );
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "user",
+                text: cleanMessage
+            }
+        ]);
 
 
         setMessage("");
-
-
-        if (
-            isShowCartRequest(
-                userMessage
-            )
-        ) {
-
-            showCart();
-
-            return;
-
-        }
-
 
         setLoading(true);
 
 
         try {
 
-            console.log(
-                "Sending message to AI:",
-                userMessage
+
+            if (isShowCartRequest(cleanMessage)) {
+
+                showCart();
+
+                setLoading(false);
+
+                return;
+            }
+
+
+            const response = await fetch(
+                "http://192.168.0.23:5000/ai/chat",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        message: cleanMessage
+                    })
+                }
             );
 
 
-            const response =
-                await fetch(
-
-                    "http://localhost:5000/ai/chat",
-
-                    {
-
-                        method: "POST",
-
-                        headers: {
-
-                            "Content-Type":
-                                "application/json"
-
-                        },
-
-                        body:
-                            JSON.stringify({
-
-                                message:
-                                    userMessage
-
-                            })
-
-                    }
-
-                );
-
-
-            const data =
-                await response.json();
-
-
-            console.log(
-                "AI response:",
-                data
-            );
+            const data = await response.json();
 
 
             if (!response.ok) {
 
                 throw new Error(
-
                     data.message ||
-
                     "Something went wrong"
-
                 );
 
             }
 
-            if (
-                data.action ===
-                "checkout"
-            ) {
+
+            console.log(
+                "AI Response:",
+                data
+            );
+
+            if (data.action === "checkout") {
 
                 console.log(
                     "CHECKOUT REQUEST"
                 );
 
 
-                if (
-                    !cart ||
-                    cart.length === 0
-                ) {
+                if (!cart || cart.length === 0) {
 
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "🛒 Your cart is empty. Please add some products before checkout."
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                setMessages(
-                    prev => [
-
+                    setMessages(prev => [
                         ...prev,
-
                         {
                             sender: "bot",
-
                             text:
-                                "🛍️ Taking you to checkout..."
+                                "🛒 Your cart is empty. Please add some products before checkout."
                         }
+                    ]);
 
-                    ]
-                );
-
-
-                setTimeout(
-                    () => {
-
-                        navigate(
-                            "/checkout"
-                        );
-
-                    },
-                    500
-                );
-
-
-                return;
-
-            }
-
-            if (
-                data.action ===
-                "add_to_cart"
-            ) {
-
-
-                let products = [];
-
-
-                if (
-                    Array.isArray(
-                        data.products
-                    )
-                ) {
-
-                    products =
-                        data.products;
-
-                }
-
-                else if (
-                    data.product
-                ) {
-
-                    products = [
-                        data.product
-                    ];
-
-                }
-
-
-                if (
-                    products.length === 0
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "Sorry, I couldn't find that product."
-                            }
-
-                        ]
-                    );
+                    setLoading(false);
 
                     return;
-
                 }
 
 
-                console.log(
-                    "PRODUCTS TO ADD:",
-                    products
-                );
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        sender: "bot",
+                        text:
+                            "🛍️ Taking you to checkout..."
+                    }
+                ]);
 
 
-                const successfullyAdded = [];
+                setTimeout(() => {
+
+                    navigate("/checkout");
+
+                }, 500);
 
 
-                const failedProducts = [];
+                setLoading(false);
+
+                return;
+            }
 
 
-                products.forEach(
-                    product => {
+            if (data.action === "show_orders") {
 
-                        if (!product) {
-                            return;
+                // User must be logged in
+                if (!user) {
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                "🔐 Please login to view your orders."
                         }
+                    ]);
+
+                    setLoading(false);
+
+                    navigate("/login");
+
+                    return;
+                }
 
 
-                        const productId =
-                            product._id ||
-                            product.id;
+                try {
+
+                    const token =
+                        localStorage.getItem("token");
 
 
-                        if (!productId) {
+                    if (!token) {
 
-                            console.error(
-                                "Product ID missing:",
-                                product
-                            );
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                sender: "bot",
+                                text:
+                                    "🔐 Your session has expired. Please login again."
+                            }
+                        ]);
 
-                            failedProducts.push(
-                                product
-                            );
+                        setLoading(false);
 
-                            return;
+                        navigate("/login");
 
-                        }
-
+                        return;
+                    }
 
 
-                        const existingProduct =
-                            cart.find(
+                    const orderResponse =
+                        await fetch(
+                            "http://192.168.0.23:5000/orders/myorders",
+                            {
+                                method: "GET",
 
-                                item => {
-
-                                    const itemId =
-                                        item._id ||
-                                        item.id;
-
-                                    return (
-                                        String(itemId) ===
-                                        String(productId)
-                                    );
-
+                                headers: {
+                                    "Authorization":
+                                        `Bearer ${token}`
                                 }
-
-                            );
-
-
-                        const currentQuantity =
-                            existingProduct
-                                ? Number(
-                                    existingProduct.quantity || 0
-                                )
-                                : 0;
-
-
-                        const quantity =
-                            Number(
-                                data.quantity || 1
-                            );
-
-
-                        const validQuantity =
-                            Number.isFinite(quantity) &&
-                            quantity > 0
-                                ? Math.floor(quantity)
-                                : 1;
-
-
-                        const stock =
-                            Number(
-                                product.stock
-                            );
-
-
-                        const requestedTotal =
-                            currentQuantity +
-                            validQuantity;
-
-
-                        console.log(
-                            "ADDING PRODUCT:",
-                            product.name
-                        );
-
-                        console.log(
-                            "PRODUCT ID:",
-                            productId
-                        );
-
-                        console.log(
-                            "CURRENT QUANTITY:",
-                            currentQuantity
-                        );
-
-                        console.log(
-                            "ADDING QUANTITY:",
-                            validQuantity
-                        );
-
-                        console.log(
-                            "STOCK:",
-                            stock
-                        );
-
-                        console.log(
-                            "REQUESTED TOTAL:",
-                            requestedTotal
+                            }
                         );
 
 
-                        if (
-                            Number.isFinite(stock) &&
-                            requestedTotal > stock
-                        ) {
-
-                            console.warn(
-                                `Not enough stock for ${product.name}`
-                            );
+                    const orderData =
+                        await orderResponse.json();
 
 
-                            failedProducts.push(
-                                product
-                            );
+                    if (!orderResponse.ok) {
 
-                            return;
+                        throw new Error(
+                            orderData.message ||
+                            "Failed to fetch orders"
+                        );
+
+                    }
+
+
+                    const orders =
+                        orderData.orders || [];
+
+
+                    if (orders.length === 0) {
+
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                sender: "bot",
+                                text:
+                                    "📦 You haven't placed any orders yet."
+                            }
+                        ]);
+
+                        setLoading(false);
+
+                        return;
+                    }
+
+                    let ordersText =
+                        "📦 Here are your orders:\n\n";
+
+
+                    orders.forEach(
+                        (order, index) => {
+
+                            const date =
+                                order.createdAt
+                                    ? new Date(
+                                        order.createdAt
+                                    ).toLocaleDateString(
+                                        "en-IN"
+                                    )
+                                    : "N/A";
+
+
+                            const payment =
+                                String(
+                                    order.paymentMethod ||
+                                    ""
+                                ).toUpperCase();
+
+
+                            const total =
+                                Number(
+                                    order.totalAmount ||
+                                    0
+                                );
+
+
+                            ordersText +=
+                                `${index + 1}. Order ID: ${order._id}\n` +
+                                `   Status: ${order.orderStatus || "Placed"}\n` +
+                                `   Payment: ${payment}\n` +
+                                `   Total: ₹${total.toLocaleString("en-IN")}\n` +
+                                `   Date: ${date}\n\n`;
 
                         }
+                    );
 
 
-                        addToCart(
-                            product,
-                            validQuantity
-                        );
-
-
-                        successfullyAdded.push(
-                            product
-                        );
-
-                    }
-                );
-
-
-                let addResponse = "";
-
-
-                if (
-                    successfullyAdded.length > 0
-                ) {
-
-                    const names =
-                        successfullyAdded.map(
-                            product =>
-                                product.name
-                        );
-
-
-                    if (names.length === 1) {
-
-                        addResponse =
-                            `✅ ${names[0]} has been added to your cart.`;
-
-                    }
-
-                    else if (names.length === 2) {
-
-                        addResponse =
-                            `✅ ${names[0]} and ${names[1]} have been added to your cart.`;
-
-                    }
-
-                    else {
-
-                        addResponse =
-                            `✅ ${names
-                                .slice(0, -1)
-                                .join(", ")} and ${names.at(-1)} have been added to your cart.`;
-
-                    }
-
-                }
-
-
-                if (
-                    failedProducts.length > 0
-                ) {
-
-                    const failedNames =
-                        failedProducts.map(
-                            product =>
-                                product.name
-                        );
-
-
-                    let failedText;
-
-
-                    if (
-                        failedNames.length === 1
-                    ) {
-
-                        failedText =
-                            `⚠️ ${failedNames[0]} could not be added because of stock availability.`;
-
-                    }
-
-                    else {
-
-                        failedText =
-                            `⚠️ ${failedNames.join(", ")} could not be added because of stock availability.`;
-
-                    }
-
-
-                    if (addResponse) {
-
-                        addResponse +=
-                            `\n\n${failedText}`;
-
-                    }
-
-                    else {
-
-                        addResponse =
-                            failedText;
-
-                    }
-
-                }
-
-
-                setMessages(
-                    prev => [
-
+                    setMessages(prev => [
                         ...prev,
-
                         {
                             sender: "bot",
-
-                            text:
-                                addResponse ||
-                                "Sorry, I couldn't add the products to your cart."
+                            text: ordersText
                         }
+                    ]);
 
-                    ]
-                );
+                } catch (error) {
 
+                    console.error(
+                        "Fetch orders error:",
+                        error
+                    );
+
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                "Sorry, I couldn't fetch your orders right now."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
 
                 return;
-
             }
 
+            if (data.action === "add_to_cart") {
+
+                if (data.product) {
+
+                    addToCart(
+                        data.product
+                    );
+
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                `🛒 ${data.product.name} has been added to your cart.`
+                        }
+                    ]);
+
+                } else {
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't find that product."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
+
+                return;
+            }
 
             if (
                 data.action ===
                 "increase_quantity"
             ) {
 
-                if (!data.product) {
+                if (data.product) {
 
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "Sorry, I couldn't find that product."
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                const quantity =
-                    Number(
-                        data.quantity || 1
+                    increaseQuantity(
+                        data.product._id ||
+                        data.product.id
                     );
 
 
-                const productId =
-                    data.product._id ||
-                    data.product.id;
-
-
-                const existingProduct =
-                    cart.find(
-
-                        item => {
-
-                            const itemId =
-                                item._id ||
-                                item.id;
-
-                            return (
-                                String(itemId) ===
-                                String(productId)
-                            );
-
-                        }
-
-                    );
-
-
-                if (!existingProduct) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                const currentQuantity =
-                    Number(
-                        existingProduct.quantity || 0
-                    );
-
-
-                const stock =
-                    Number(
-                        data.product.stock
-                    );
-
-
-                const requestedTotal =
-                    currentQuantity +
-                    quantity;
-
-
-                console.log(
-                    "INCREASE BY:",
-                    quantity
-                );
-
-                console.log(
-                    "CURRENT QUANTITY:",
-                    currentQuantity
-                );
-
-                console.log(
-                    "REQUESTED TOTAL:",
-                    requestedTotal
-                );
-
-                console.log(
-                    "STOCK:",
-                    stock
-                );
-
-
-                if (
-                    Number.isFinite(stock) &&
-                    requestedTotal > stock
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `⚠️ Cannot increase ${data.product.name}. Only ${stock} are available, and you already have ${currentQuantity} in your cart.`
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                increaseQuantity(
-                    productId,
-                    quantity
-                );
-
-
-                setMessages(
-                    prev => [
-
+                    setMessages(prev => [
                         ...prev,
-
                         {
                             sender: "bot",
-
                             text:
-                                `➕ ${data.product.name} quantity has been increased by ${quantity}.`
+                                `➕ Increased the quantity of ${data.product.name}.`
                         }
+                    ]);
 
-                    ]
-                );
+                } else {
 
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't find that product in your cart."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
 
                 return;
-
             }
 
 
@@ -1009,418 +541,84 @@ function Assistant() {
                 "decrease_quantity"
             ) {
 
-                if (!data.product) {
+                if (data.product) {
 
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "Sorry, I couldn't find that product."
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                const quantity =
-                    Number(
-                        data.quantity || 1
+                    decreaseQuantity(
+                        data.product._id ||
+                        data.product.id
                     );
 
 
-                const productId =
-                    data.product._id ||
-                    data.product.id;
-
-
-                const existingProduct =
-                    cart.find(
-
-                        item => {
-
-                            const itemId =
-                                item._id ||
-                                item.id;
-
-                            return (
-                                String(itemId) ===
-                                String(productId)
-                            );
-
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                `➖ Decreased the quantity of ${data.product.name}.`
                         }
+                    ]);
 
-                    );
+                } else {
 
-
-                if (!existingProduct) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-                            }
-
-                        ]
-                    );
-
-                    return;
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't find that product in your cart."
+                        }
+                    ]);
 
                 }
 
 
-                const currentQuantity =
-                    Number(
-                        existingProduct.quantity || 1
-                    );
-
-
-                if (
-                    currentQuantity <= 0
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
-                const actualDecrease =
-                    Math.min(
-                        quantity,
-                        currentQuantity
-                    );
-
-
-                decreaseQuantity(
-                    productId,
-                    actualDecrease
-                );
-
-
-                const remainingQuantity =
-                    currentQuantity -
-                    actualDecrease;
-
-
-                if (
-                    remainingQuantity === 0
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `🗑️ ${data.product.name} has been removed from your cart because its quantity reached 0.`
-                            }
-
-                        ]
-                    );
-
-                }
-
-                else {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    `➖ ${data.product.name} quantity has been decreased by ${actualDecrease}.`
-                            }
-
-                        ]
-                    );
-
-                }
-
+                setLoading(false);
 
                 return;
-
             }
+
 
             if (
                 data.action ===
                 "remove_from_cart"
             ) {
 
-                let products = [];
+                if (data.product) {
 
-
-                if (
-                    Array.isArray(
-                        data.products
-                    )
-                ) {
-
-                    products =
-                        data.products;
-
-                }
-
-                else if (
-                    data.product
-                ) {
-
-                    products = [
-                        data.product
-                    ];
-
-                }
-
-
-                if (
-                    products.length === 0
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "Sorry, I couldn't find that product."
-                            }
-
-                        ]
+                    removeFromCart(
+                        data.product._id ||
+                        data.product.id
                     );
 
-                    return;
 
-                }
-
-
-                console.log(
-                    "PRODUCTS TO REMOVE:",
-                    products
-                );
-
-
-                const removedProducts = [];
-
-
-                const notInCartProducts = [];
-
-
-                products.forEach(
-                    product => {
-
-                        if (!product) {
-                            return;
-                        }
-
-
-                        const productId =
-                            product._id ||
-                            product.id;
-
-
-                        if (!productId) {
-
-                            console.error(
-                                "Product ID missing:",
-                                product
-                            );
-
-                            return;
-
-                        }
-
-
-                        const exists =
-                            cart.some(
-
-                                item => {
-
-                                    const itemId =
-                                        item._id ||
-                                        item.id;
-
-                                    return (
-                                        String(itemId) ===
-                                        String(productId)
-                                    );
-
-                                }
-
-                            );
-
-
-                        if (!exists) {
-
-                            notInCartProducts.push(
-                                product
-                            );
-
-                            return;
-
-                        }
-
-
-                        removeFromCart(
-                            productId
-                        );
-
-
-                        removedProducts.push(
-                            product
-                        );
-
-                    }
-                );
-
-
-                let removeResponse = "";
-
-
-                if (
-                    removedProducts.length > 0
-                ) {
-
-                    const names =
-                        removedProducts.map(
-                            product =>
-                                product.name
-                        );
-
-
-                    if (names.length === 1) {
-
-                        removeResponse =
-                            `🗑️ ${names[0]} has been removed from your cart.`;
-
-                    }
-
-                    else if (names.length === 2) {
-
-                        removeResponse =
-                            `🗑️ ${names[0]} and ${names[1]} have been removed from your cart.`;
-
-                    }
-
-                    else {
-
-                        removeResponse =
-                            `🗑️ ${names
-                                .slice(0, -1)
-                                .join(", ")} and ${names.at(-1)} have been removed from your cart.`;
-
-                    }
-
-                }
-
-
-                // ------------------------------------------------
-                // PRODUCTS NOT PRESENT IN CART
-                // ------------------------------------------------
-
-                if (
-                    notInCartProducts.length > 0
-                ) {
-
-                    const names =
-                        notInCartProducts.map(
-                            product =>
-                                product.name
-                        );
-
-
-                    let notFoundText;
-
-
-                    if (
-                        names.length === 1
-                    ) {
-
-                        notFoundText =
-                            `ℹ️ ${names[0]} is not currently in your cart.`;
-
-                    }
-
-                    else {
-
-                        notFoundText =
-                            `ℹ️ ${names.join(", ")} are not currently in your cart.`;
-
-                    }
-
-
-                    if (removeResponse) {
-
-                        removeResponse +=
-                            `\n\n${notFoundText}`;
-
-                    }
-
-                    else {
-
-                        removeResponse =
-                            notFoundText;
-
-                    }
-
-                }
-
-
-                setMessages(
-                    prev => [
-
+                    setMessages(prev => [
                         ...prev,
-
                         {
                             sender: "bot",
-
                             text:
-                                removeResponse ||
-                                "Sorry, I couldn't remove the products from your cart."
+                                `🗑️ ${data.product.name} has been removed from your cart.`
                         }
+                    ]);
 
-                    ]
-                );
+                } else {
 
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't find that product in your cart."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
 
                 return;
-
             }
 
 
@@ -1429,73 +627,36 @@ function Assistant() {
                 "clear_cart"
             ) {
 
-                if (
-                    !cart ||
-                    cart.length === 0
-                ) {
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-                                sender: "bot",
-
-                                text:
-                                    "🛒 Your cart is already empty."
-                            }
-
-                        ]
-                    );
-
-                    return;
-
-                }
-
-
                 clearCart();
 
 
-                setMessages(
-                    prev => [
-
-                        ...prev,
-
-                        {
-                            sender: "bot",
-
-                            text:
-                                "🗑️ All products have been removed from your cart."
-                        }
-
-                    ]
-                );
-
-
-                return;
-
-            }
-
-            setMessages(
-                prev => [
-
+                setMessages(prev => [
                     ...prev,
-
                     {
                         sender: "bot",
-
                         text:
-                            data.response ||
-                            "Sorry, I couldn't understand that."
+                            "🗑️ Your cart has been cleared."
                     }
+                ]);
 
-                ]
-            );
 
-        }
+                setLoading(false);
 
-        catch (error) {
+                return;
+            }
+
+
+            setMessages(prev => [
+                ...prev,
+                {
+                    sender: "bot",
+                    text:
+                        data.response ||
+                        "Sorry, I couldn't understand that."
+                }
+            ]);
+
+        } catch (error) {
 
             console.error(
                 "Chatbot error:",
@@ -1503,104 +664,74 @@ function Assistant() {
             );
 
 
-            setMessages(
-                prev => [
+            setMessages(prev => [
+                ...prev,
+                {
+                    sender: "bot",
+                    text:
+                        "Sorry, something went wrong. Please try again."
+                }
+            ]);
 
-                    ...prev,
-
-                    {
-                        sender: "bot",
-
-                        text:
-                            "Sorry, I'm unable to respond right now. Please try again."
-                    }
-
-                ]
-            );
-
-        }
-
-        finally {
+        } finally {
 
             setLoading(false);
 
         }
 
-    };
+    }
 
 
+    function handleKeyDown(e) {
 
-    const closeChat = () => {
-
-        setIsOpen(false);
-
-        setMessage("");
-
-
-        if (!user?.id) {
-
-            setMessages([
-                welcomeMessage
-            ]);
-
-        }
-
-    };
-
-
-    const openChat = () => {
-
-        if (!user?.id) {
-
-            setMessages([
-                welcomeMessage
-            ]);
-
-            setMessage("");
-
-        }
-
-
-        setIsOpen(true);
-
-    };
-
-
-    const handleKeyDown = (
-        e
-    ) => {
-
-        if (
-            e.key === "Enter" &&
-            !e.shiftKey
-        ) {
-
-            e.preventDefault();
+        if (e.key === "Enter") {
 
             sendMessage();
 
         }
 
-    };
+    }
+
+
+    function clearChat() {
+
+        const initialMessage = {
+            sender: "bot",
+            text:
+                "👋 Hi! Welcome to VELORA. How can I help you?"
+        };
+
+
+        setMessages([
+            initialMessage
+        ]);
+
+
+        localStorage.setItem(
+            chatKey,
+            JSON.stringify([
+                initialMessage
+            ])
+        );
+
+    }
 
 
     return (
 
         <>
 
+
             {!isOpen && (
 
                 <button
-
-                    className="chatbot-button"
-
-                    onClick={
-                        openChat
+                    className="assistant-button"
+                    onClick={() =>
+                        setIsOpen(true)
                     }
-
                 >
 
-                    <FaComments />
+                    <FaRobot />
 
                 </button>
 
@@ -1609,83 +740,91 @@ function Assistant() {
 
             {isOpen && (
 
-                <div
-                    className="chatbot-container"
-                >
+                <div className="assistant-container">
 
-                    <div
-                        className="chatbot-header"
-                    >
+
+                    <div className="assistant-header">
 
                         <div>
 
-                            <h3>
-                                VELORA Assistant
-                            </h3>
+                            <FaRobot />
 
                             <span>
-                                Online
+                                VELORA Assistant
                             </span>
 
                         </div>
 
 
-                        <button
+                        <div className="assistant-header-actions">
 
-                            onClick={
-                                closeChat
-                            }
+                            <button
+                                onClick={clearChat}
+                                title="Clear chat"
+                            >
+                                <FaTrash />
+                            </button>
 
-                            className="chatbot-close"
 
-                        >
+                            <button
+                                onClick={() =>
+                                    setIsOpen(false)
+                                }
+                                title="Close"
+                            >
+                                <FaTimes />
+                            </button>
 
-                            <FaTimes />
-
-                        </button>
+                        </div>
 
                     </div>
 
 
-                    <div
-                        className="chatbot-messages"
-                    >
+                    <div className="assistant-messages">
 
                         {messages.map(
-
-                            (
-                                msg,
-                                index
-                            ) => (
+                            (msg, index) => (
 
                                 <div
-
-                                    key={
-                                        index
-                                    }
-
+                                    key={index}
                                     className={
-                                        `chat-message ${msg.sender}`
+                                        msg.sender === "user"
+                                            ? "user-message"
+                                            : "bot-message"
                                     }
-
                                 >
 
-                                    {msg.text}
+                                    {msg.text
+                                        .split("\n")
+                                        .map(
+                                            (
+                                                line,
+                                                lineIndex
+                                            ) => (
+
+                                                <div
+                                                    key={
+                                                        lineIndex
+                                                    }
+                                                >
+                                                    {line}
+                                                </div>
+
+                                            )
+                                        )}
 
                                 </div>
 
                             )
-
                         )}
+
 
 
                         {loading && (
 
-                            <div
-                                className="chat-message bot"
-                            >
+                            <div className="bot-message">
 
-                                Thinking...
+                                Typing...
 
                             </div>
 
@@ -1694,52 +833,31 @@ function Assistant() {
                     </div>
 
 
-                    <div
-                        className="chatbot-input"
-                    >
+                    <div className="assistant-input">
 
                         <input
-
                             type="text"
-
-                            value={
-                                message
+                            value={message}
+                            placeholder="Ask me anything..."
+                            onChange={e =>
+                                setMessage(
+                                    e.target.value
+                                )
                             }
-
-                            placeholder="Ask about products..."
-
-                            onChange={
-                                e =>
-                                    setMessage(
-                                        e.target.value
-                                    )
-                            }
-
                             onKeyDown={
                                 handleKeyDown
                             }
-
-                            disabled={
-                                loading
-                            }
-
                         />
 
 
                         <button
-
                             onClick={
                                 sendMessage
                             }
-
                             disabled={
-
                                 loading ||
-
                                 !message.trim()
-
                             }
-
                         >
 
                             <FaPaperPlane />
@@ -1758,6 +876,4 @@ function Assistant() {
 
 }
 
-
 export default Assistant;
-
