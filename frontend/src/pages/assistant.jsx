@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import {
     FaComments,
@@ -23,6 +23,7 @@ function Assistant() {
 
     const navigate =
         useNavigate();
+
     const {
         cart,
         addToCart,
@@ -33,17 +34,14 @@ function Assistant() {
     } =
         useCart();
 
-
     const welcomeMessage = {
 
-        sender:
-            "bot",
+        sender: "bot",
 
         text:
             "Hi! 👋 I'm the VELORA Shopping Assistant. How can I help you today?"
 
     };
-
 
     const [
         isOpen,
@@ -75,10 +73,6 @@ function Assistant() {
         useState(false);
 
 
-    // ==================================================
-    // CHAT KEY
-    // ==================================================
-
     const getChatKey = () => {
 
         if (user?.id) {
@@ -90,11 +84,6 @@ function Assistant() {
         return null;
 
     };
-
-
-    // ==================================================
-    // LOAD CHAT
-    // ==================================================
 
     useEffect(() => {
 
@@ -141,9 +130,7 @@ function Assistant() {
 
 
             if (
-                Array.isArray(
-                    parsedChat
-                ) &&
+                Array.isArray(parsedChat) &&
                 parsedChat.length > 0
             ) {
 
@@ -180,10 +167,6 @@ function Assistant() {
     }, [user]);
 
 
-    // ==================================================
-    // SAVE CHAT
-    // ==================================================
-
     useEffect(() => {
 
         if (!user?.id) {
@@ -193,9 +176,7 @@ function Assistant() {
         }
 
 
-        if (
-            messages.length === 0
-        ) {
+        if (messages.length === 0) {
 
             return;
 
@@ -207,13 +188,8 @@ function Assistant() {
 
 
         localStorage.setItem(
-
             chatKey,
-
-            JSON.stringify(
-                messages
-            )
-
+            JSON.stringify(messages)
         );
 
     }, [
@@ -221,10 +197,6 @@ function Assistant() {
         user
     ]);
 
-
-    // ==================================================
-    // SHOW CART DETECTION
-    // ==================================================
 
     const isShowCartRequest = (
         text
@@ -273,10 +245,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // SHOW CART
-    // ==================================================
-
     const showCart = () => {
 
         if (
@@ -290,13 +258,10 @@ function Assistant() {
                     ...prev,
 
                     {
-
-                        sender:
-                            "bot",
+                        sender: "bot",
 
                         text:
                             "🛒 Your cart is currently empty."
-
                     }
 
                 ]
@@ -362,24 +327,15 @@ function Assistant() {
                 ...prev,
 
                 {
+                    sender: "bot",
 
-                    sender:
-                        "bot",
-
-                    text:
-                        cartText
-
+                    text: cartText
                 }
 
             ]
         );
 
     };
-
-
-    // ==================================================
-    // SEND MESSAGE
-    // ==================================================
 
     const sendMessage = async () => {
 
@@ -396,20 +352,15 @@ function Assistant() {
         const userMessage =
             message.trim();
 
-
         setMessages(
             prev => [
 
                 ...prev,
 
                 {
+                    sender: "user",
 
-                    sender:
-                        "user",
-
-                    text:
-                        userMessage
-
+                    text: userMessage
                 }
 
             ]
@@ -418,10 +369,6 @@ function Assistant() {
 
         setMessage("");
 
-
-        // ==================================================
-        // SHOW CART
-        // ==================================================
 
         if (
             isShowCartRequest(
@@ -454,8 +401,7 @@ function Assistant() {
 
                     {
 
-                        method:
-                            "POST",
+                        method: "POST",
 
                         headers: {
 
@@ -480,7 +426,7 @@ function Assistant() {
             const data =
                 await response.json();
 
-
+            
             console.log(
                 "AI response:",
                 data
@@ -498,10 +444,6 @@ function Assistant() {
                 );
 
             }
-
-            // ==================================================
-            // CHECKOUT
-            // ==================================================
 
             if (
                 data.action ===
@@ -524,13 +466,10 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
                                     "🛒 Your cart is empty. Please add some products before checkout."
-
                             }
 
                         ]
@@ -547,13 +486,10 @@ function Assistant() {
                         ...prev,
 
                         {
-
-                            sender:
-                                "bot",
+                            sender: "bot",
 
                             text:
                                 "🛍️ Taking you to checkout..."
-
                         }
 
                     ]
@@ -575,20 +511,355 @@ function Assistant() {
                 return;
 
             }
-            // ==================================================
-            // ADD TO CART
-            // ==================================================
 
             if (
-
                 data.action ===
                 "add_to_cart"
-
-                &&
-
-                data.product
-
             ) {
+
+
+                let products = [];
+
+
+                if (
+                    Array.isArray(
+                        data.products
+                    )
+                ) {
+
+                    products =
+                        data.products;
+
+                }
+
+                else if (
+                    data.product
+                ) {
+
+                    products = [
+                        data.product
+                    ];
+
+                }
+
+
+                if (
+                    products.length === 0
+                ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+                                sender: "bot",
+
+                                text:
+                                    "Sorry, I couldn't find that product."
+                            }
+
+                        ]
+                    );
+
+                    return;
+
+                }
+
+
+                console.log(
+                    "PRODUCTS TO ADD:",
+                    products
+                );
+
+
+                const successfullyAdded = [];
+
+
+                const failedProducts = [];
+
+
+                products.forEach(
+                    product => {
+
+                        if (!product) {
+                            return;
+                        }
+
+
+                        const productId =
+                            product._id ||
+                            product.id;
+
+
+                        if (!productId) {
+
+                            console.error(
+                                "Product ID missing:",
+                                product
+                            );
+
+                            failedProducts.push(
+                                product
+                            );
+
+                            return;
+
+                        }
+
+
+
+                        const existingProduct =
+                            cart.find(
+
+                                item => {
+
+                                    const itemId =
+                                        item._id ||
+                                        item.id;
+
+                                    return (
+                                        String(itemId) ===
+                                        String(productId)
+                                    );
+
+                                }
+
+                            );
+
+
+                        const currentQuantity =
+                            existingProduct
+                                ? Number(
+                                    existingProduct.quantity || 0
+                                )
+                                : 0;
+
+
+                        const quantity =
+                            Number(
+                                data.quantity || 1
+                            );
+
+
+                        const validQuantity =
+                            Number.isFinite(quantity) &&
+                            quantity > 0
+                                ? Math.floor(quantity)
+                                : 1;
+
+
+                        const stock =
+                            Number(
+                                product.stock
+                            );
+
+
+                        const requestedTotal =
+                            currentQuantity +
+                            validQuantity;
+
+
+                        console.log(
+                            "ADDING PRODUCT:",
+                            product.name
+                        );
+
+                        console.log(
+                            "PRODUCT ID:",
+                            productId
+                        );
+
+                        console.log(
+                            "CURRENT QUANTITY:",
+                            currentQuantity
+                        );
+
+                        console.log(
+                            "ADDING QUANTITY:",
+                            validQuantity
+                        );
+
+                        console.log(
+                            "STOCK:",
+                            stock
+                        );
+
+                        console.log(
+                            "REQUESTED TOTAL:",
+                            requestedTotal
+                        );
+
+
+                        if (
+                            Number.isFinite(stock) &&
+                            requestedTotal > stock
+                        ) {
+
+                            console.warn(
+                                `Not enough stock for ${product.name}`
+                            );
+
+
+                            failedProducts.push(
+                                product
+                            );
+
+                            return;
+
+                        }
+
+
+                        addToCart(
+                            product,
+                            validQuantity
+                        );
+
+
+                        successfullyAdded.push(
+                            product
+                        );
+
+                    }
+                );
+
+
+                let addResponse = "";
+
+
+                if (
+                    successfullyAdded.length > 0
+                ) {
+
+                    const names =
+                        successfullyAdded.map(
+                            product =>
+                                product.name
+                        );
+
+
+                    if (names.length === 1) {
+
+                        addResponse =
+                            `✅ ${names[0]} has been added to your cart.`;
+
+                    }
+
+                    else if (names.length === 2) {
+
+                        addResponse =
+                            `✅ ${names[0]} and ${names[1]} have been added to your cart.`;
+
+                    }
+
+                    else {
+
+                        addResponse =
+                            `✅ ${names
+                                .slice(0, -1)
+                                .join(", ")} and ${names.at(-1)} have been added to your cart.`;
+
+                    }
+
+                }
+
+
+                if (
+                    failedProducts.length > 0
+                ) {
+
+                    const failedNames =
+                        failedProducts.map(
+                            product =>
+                                product.name
+                        );
+
+
+                    let failedText;
+
+
+                    if (
+                        failedNames.length === 1
+                    ) {
+
+                        failedText =
+                            `⚠️ ${failedNames[0]} could not be added because of stock availability.`;
+
+                    }
+
+                    else {
+
+                        failedText =
+                            `⚠️ ${failedNames.join(", ")} could not be added because of stock availability.`;
+
+                    }
+
+
+                    if (addResponse) {
+
+                        addResponse +=
+                            `\n\n${failedText}`;
+
+                    }
+
+                    else {
+
+                        addResponse =
+                            failedText;
+
+                    }
+
+                }
+
+
+                setMessages(
+                    prev => [
+
+                        ...prev,
+
+                        {
+                            sender: "bot",
+
+                            text:
+                                addResponse ||
+                                "Sorry, I couldn't add the products to your cart."
+                        }
+
+                    ]
+                );
+
+
+                return;
+
+            }
+
+
+            if (
+                data.action ===
+                "increase_quantity"
+            ) {
+
+                if (!data.product) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+                                sender: "bot",
+
+                                text:
+                                    "Sorry, I couldn't find that product."
+                            }
+
+                        ]
+                    );
+
+                    return;
+
+                }
+
 
                 const quantity =
                     Number(
@@ -604,22 +875,48 @@ function Assistant() {
                 const existingProduct =
                     cart.find(
 
-                        item =>
+                        item => {
 
-                            (
+                            const itemId =
                                 item._id ||
-                                item.id
-                            ) === productId
+                                item.id;
+
+                            return (
+                                String(itemId) ===
+                                String(productId)
+                            );
+
+                        }
 
                     );
 
 
+                if (!existingProduct) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+                                sender: "bot",
+
+                                text:
+                                    `ℹ️ ${data.product.name} is not currently in your cart.`
+                            }
+
+                        ]
+                    );
+
+                    return;
+
+                }
+
+
                 const currentQuantity =
-                    existingProduct
-                        ? Number(
-                            existingProduct.quantity || 0
-                        )
-                        : 0;
+                    Number(
+                        existingProduct.quantity || 0
+                    );
 
 
                 const stock =
@@ -634,16 +931,19 @@ function Assistant() {
 
 
                 console.log(
-                    "ADD QUANTITY:",
+                    "INCREASE BY:",
                     quantity
                 );
-
 
                 console.log(
                     "CURRENT QUANTITY:",
                     currentQuantity
                 );
 
+                console.log(
+                    "REQUESTED TOTAL:",
+                    requestedTotal
+                );
 
                 console.log(
                     "STOCK:",
@@ -662,27 +962,53 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
-                                    `⚠️ Only ${stock} ${data.product.name} are available in stock. You already have ${currentQuantity} in your cart.`
-
+                                    `⚠️ Cannot increase ${data.product.name}. Only ${stock} are available, and you already have ${currentQuantity} in your cart.`
                             }
 
                         ]
                     );
 
+                    return;
+
                 }
 
-                else {
 
-                    addToCart(
-                        data.product,
-                        quantity
-                    );
+                increaseQuantity(
+                    productId,
+                    quantity
+                );
 
+
+                setMessages(
+                    prev => [
+
+                        ...prev,
+
+                        {
+                            sender: "bot",
+
+                            text:
+                                `➕ ${data.product.name} quantity has been increased by ${quantity}.`
+                        }
+
+                    ]
+                );
+
+
+                return;
+
+            }
+
+
+            if (
+                data.action ===
+                "decrease_quantity"
+            ) {
+
+                if (!data.product) {
 
                     setMessages(
                         prev => [
@@ -690,37 +1016,19 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
-                                    `✅ ${quantity} ${data.product.name} ${quantity === 1 ? "has" : "have"} been added to your cart.`
-
+                                    "Sorry, I couldn't find that product."
                             }
 
                         ]
                     );
 
+                    return;
+
                 }
 
-            }
-
-
-            // ==================================================
-            // INCREASE QUANTITY
-            // ==================================================
-
-            else if (
-
-                data.action ===
-                "increase_quantity"
-
-                &&
-
-                data.product
-
-            ) {
 
                 const quantity =
                     Number(
@@ -736,12 +1044,18 @@ function Assistant() {
                 const existingProduct =
                     cart.find(
 
-                        item =>
+                        item => {
 
-                            (
+                            const itemId =
                                 item._id ||
-                                item.id
-                            ) === productId
+                                item.id;
+
+                            return (
+                                String(itemId) ===
+                                String(productId)
+                            );
+
+                        }
 
                     );
 
@@ -754,161 +1068,71 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
                                     `ℹ️ ${data.product.name} is not currently in your cart.`
-
                             }
 
                         ]
                     );
 
+                    return;
+
                 }
 
-                else {
 
-                    const currentQuantity =
-                        Number(
-                            existingProduct.quantity || 0
-                        );
-
-
-                    const stock =
-                        Number(
-                            data.product.stock
-                        );
-
-
-                    const requestedTotal =
-                        currentQuantity +
-                        quantity;
-
-
-                    console.log(
-                        "INCREASE BY:",
-                        quantity
+                const currentQuantity =
+                    Number(
+                        existingProduct.quantity || 1
                     );
 
 
-                    console.log(
-                        "CURRENT QUANTITY:",
+                if (
+                    currentQuantity <= 0
+                ) {
+
+                    setMessages(
+                        prev => [
+
+                            ...prev,
+
+                            {
+                                sender: "bot",
+
+                                text:
+                                    `ℹ️ ${data.product.name} is not currently in your cart.`
+                            }
+
+                        ]
+                    );
+
+                    return;
+
+                }
+
+
+                const actualDecrease =
+                    Math.min(
+                        quantity,
                         currentQuantity
                     );
 
 
-                    console.log(
-                        "REQUESTED TOTAL:",
-                        requestedTotal
-                    );
+                decreaseQuantity(
+                    productId,
+                    actualDecrease
+                );
 
 
-                    console.log(
-                        "STOCK:",
-                        stock
-                    );
+                const remainingQuantity =
+                    currentQuantity -
+                    actualDecrease;
 
 
-                    if (
-                        Number.isFinite(stock) &&
-                        requestedTotal > stock
-                    ) {
-
-                        setMessages(
-                            prev => [
-
-                                ...prev,
-
-                                {
-
-                                    sender:
-                                        "bot",
-
-                                    text:
-                                        `⚠️ Cannot increase ${data.product.name}. Only ${stock} are available, and you already have ${currentQuantity} in your cart.`
-
-                                }
-
-                            ]
-                        );
-
-                    }
-
-                    else {
-
-                        increaseQuantity(
-                            productId,
-                            quantity
-                        );
-
-
-                        setMessages(
-                            prev => [
-
-                                ...prev,
-
-                                {
-
-                                    sender:
-                                        "bot",
-
-                                    text:
-                                        `➕ ${data.product.name} quantity has been increased by ${quantity}.`
-
-                                }
-
-                            ]
-                        );
-
-                    }
-
-                }
-
-            }
-
-
-            // ==================================================
-            // DECREASE QUANTITY
-            // ==================================================
-
-            else if (
-
-                data.action ===
-                "decrease_quantity"
-
-                &&
-
-                data.product
-
-            ) {
-
-                const quantity =
-                    Number(
-                        data.quantity || 1
-                    );
-
-
-                const productId =
-                    data.product._id ||
-                    data.product.id;
-
-
-                const existingProduct =
-                    cart.find(
-
-                        item =>
-
-                            (
-                                item._id ||
-                                item.id
-                            ) === productId
-
-                    );
-
-
-                if (!existingProduct) {
+                if (
+                    remainingQuantity === 0
+                ) {
 
                     setMessages(
                         prev => [
@@ -916,13 +1140,10 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-
+                                    `🗑️ ${data.product.name} has been removed from your cart because its quantity reached 0.`
                             }
 
                         ]
@@ -932,143 +1153,61 @@ function Assistant() {
 
                 else {
 
-                    const currentQuantity =
-                        Number(
-                            existingProduct.quantity || 0
-                        );
+                    setMessages(
+                        prev => [
 
+                            ...prev,
 
-                    if (
-                        currentQuantity <= 0
-                    ) {
+                            {
+                                sender: "bot",
 
-                        setMessages(
-                            prev => [
+                                text:
+                                    `➖ ${data.product.name} quantity has been decreased by ${actualDecrease}.`
+                            }
 
-                                ...prev,
-
-                                {
-
-                                    sender:
-                                        "bot",
-
-                                    text:
-                                        `ℹ️ ${data.product.name} is not currently in your cart.`
-
-                                }
-
-                            ]
-                        );
-
-                    }
-
-                    else {
-
-                        const actualDecrease =
-                            Math.min(
-                                quantity,
-                                currentQuantity
-                            );
-
-
-                        decreaseQuantity(
-                            productId,
-                            actualDecrease
-                        );
-
-
-                        const remainingQuantity =
-                            currentQuantity -
-                            actualDecrease;
-
-
-                        if (
-                            remainingQuantity === 0
-                        ) {
-
-                            setMessages(
-                                prev => [
-
-                                    ...prev,
-
-                                    {
-
-                                        sender:
-                                            "bot",
-
-                                        text:
-                                            `🗑️ ${data.product.name} has been removed from your cart because its quantity reached 0.`
-
-                                    }
-
-                                ]
-                            );
-
-                        }
-
-                        else {
-
-                            setMessages(
-                                prev => [
-
-                                    ...prev,
-
-                                    {
-
-                                        sender:
-                                            "bot",
-
-                                        text:
-                                            `➖ ${data.product.name} quantity has been decreased by ${actualDecrease}.`
-
-                                    }
-
-                                ]
-                            );
-
-                        }
-
-                    }
+                        ]
+                    );
 
                 }
 
+
+                return;
+
             }
 
-
-            // ==================================================
-            // REMOVE SINGLE PRODUCT
-            // ==================================================
-
-            else if (
-
+            if (
                 data.action ===
                 "remove_from_cart"
-
-                &&
-
-                data.product
-
             ) {
 
-                const productId =
-                    data.product._id ||
-                    data.product.id;
+                let products = [];
 
 
-                const exists =
-                    cart.some(
+                if (
+                    Array.isArray(
+                        data.products
+                    )
+                ) {
 
-                        item =>
+                    products =
+                        data.products;
 
-                            (
-                                item._id ||
-                                item.id
-                            ) === productId
+                }
 
-                    );
+                else if (
+                    data.product
+                ) {
+
+                    products = [
+                        data.product
+                    ];
+
+                }
 
 
-                if (!exists) {
+                if (
+                    products.length === 0
+                ) {
 
                     setMessages(
                         prev => [
@@ -1076,59 +1215,217 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
-                                    `ℹ️ ${data.product.name} is not currently in your cart.`
-
+                                    "Sorry, I couldn't find that product."
                             }
 
                         ]
                     );
 
-                }
-
-                else {
-
-                    removeFromCart(
-                        productId
-                    );
-
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    `🗑️ ${data.product.name} has been removed from your cart.`
-
-                            }
-
-                        ]
-                    );
+                    return;
 
                 }
+
+
+                console.log(
+                    "PRODUCTS TO REMOVE:",
+                    products
+                );
+
+
+                const removedProducts = [];
+
+
+                const notInCartProducts = [];
+
+
+                products.forEach(
+                    product => {
+
+                        if (!product) {
+                            return;
+                        }
+
+
+                        const productId =
+                            product._id ||
+                            product.id;
+
+
+                        if (!productId) {
+
+                            console.error(
+                                "Product ID missing:",
+                                product
+                            );
+
+                            return;
+
+                        }
+
+
+                        const exists =
+                            cart.some(
+
+                                item => {
+
+                                    const itemId =
+                                        item._id ||
+                                        item.id;
+
+                                    return (
+                                        String(itemId) ===
+                                        String(productId)
+                                    );
+
+                                }
+
+                            );
+
+
+                        if (!exists) {
+
+                            notInCartProducts.push(
+                                product
+                            );
+
+                            return;
+
+                        }
+
+
+                        removeFromCart(
+                            productId
+                        );
+
+
+                        removedProducts.push(
+                            product
+                        );
+
+                    }
+                );
+
+
+                let removeResponse = "";
+
+
+                if (
+                    removedProducts.length > 0
+                ) {
+
+                    const names =
+                        removedProducts.map(
+                            product =>
+                                product.name
+                        );
+
+
+                    if (names.length === 1) {
+
+                        removeResponse =
+                            `🗑️ ${names[0]} has been removed from your cart.`;
+
+                    }
+
+                    else if (names.length === 2) {
+
+                        removeResponse =
+                            `🗑️ ${names[0]} and ${names[1]} have been removed from your cart.`;
+
+                    }
+
+                    else {
+
+                        removeResponse =
+                            `🗑️ ${names
+                                .slice(0, -1)
+                                .join(", ")} and ${names.at(-1)} have been removed from your cart.`;
+
+                    }
+
+                }
+
+
+                // ------------------------------------------------
+                // PRODUCTS NOT PRESENT IN CART
+                // ------------------------------------------------
+
+                if (
+                    notInCartProducts.length > 0
+                ) {
+
+                    const names =
+                        notInCartProducts.map(
+                            product =>
+                                product.name
+                        );
+
+
+                    let notFoundText;
+
+
+                    if (
+                        names.length === 1
+                    ) {
+
+                        notFoundText =
+                            `ℹ️ ${names[0]} is not currently in your cart.`;
+
+                    }
+
+                    else {
+
+                        notFoundText =
+                            `ℹ️ ${names.join(", ")} are not currently in your cart.`;
+
+                    }
+
+
+                    if (removeResponse) {
+
+                        removeResponse +=
+                            `\n\n${notFoundText}`;
+
+                    }
+
+                    else {
+
+                        removeResponse =
+                            notFoundText;
+
+                    }
+
+                }
+
+
+                setMessages(
+                    prev => [
+
+                        ...prev,
+
+                        {
+                            sender: "bot",
+
+                            text:
+                                removeResponse ||
+                                "Sorry, I couldn't remove the products from your cart."
+                        }
+
+                    ]
+                );
+
+
+                return;
 
             }
 
 
-            // ==================================================
-            // CLEAR ENTIRE CART
-            // ==================================================
-
-            else if (
-
+            if (
                 data.action ===
                 "clear_cart"
-
             ) {
 
                 if (
@@ -1142,53 +1439,22 @@ function Assistant() {
                             ...prev,
 
                             {
-
-                                sender:
-                                    "bot",
+                                sender: "bot",
 
                                 text:
                                     "🛒 Your cart is already empty."
-
                             }
 
                         ]
                     );
 
-                }
-
-                else {
-
-                    clearCart();
-
-
-                    setMessages(
-                        prev => [
-
-                            ...prev,
-
-                            {
-
-                                sender:
-                                    "bot",
-
-                                text:
-                                    "🗑️ All products have been removed from your cart."
-
-                            }
-
-                        ]
-                    );
+                    return;
 
                 }
 
-            }
 
+                clearCart();
 
-            // ==================================================
-            // NORMAL RESPONSE
-            // ==================================================
-
-            else {
 
                 setMessages(
                     prev => [
@@ -1196,21 +1462,35 @@ function Assistant() {
                         ...prev,
 
                         {
-
-                            sender:
-                                "bot",
+                            sender: "bot",
 
                             text:
-                                data.response ||
-
-                                "Sorry, I couldn't understand that."
-
+                                "🗑️ All products have been removed from your cart."
                         }
 
                     ]
                 );
 
+
+                return;
+
             }
+
+            setMessages(
+                prev => [
+
+                    ...prev,
+
+                    {
+                        sender: "bot",
+
+                        text:
+                            data.response ||
+                            "Sorry, I couldn't understand that."
+                    }
+
+                ]
+            );
 
         }
 
@@ -1228,13 +1508,10 @@ function Assistant() {
                     ...prev,
 
                     {
-
-                        sender:
-                            "bot",
+                        sender: "bot",
 
                         text:
                             "Sorry, I'm unable to respond right now. Please try again."
-
                     }
 
                 ]
@@ -1251,9 +1528,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // CLOSE CHAT
-    // ==================================================
 
     const closeChat = () => {
 
@@ -1273,10 +1547,6 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // OPEN CHAT
-    // ==================================================
-
     const openChat = () => {
 
         if (!user?.id) {
@@ -1295,23 +1565,13 @@ function Assistant() {
     };
 
 
-    // ==================================================
-    // ENTER KEY
-    // ==================================================
-
     const handleKeyDown = (
         e
     ) => {
 
         if (
-
-            e.key ===
-            "Enter"
-
-            &&
-
+            e.key === "Enter" &&
             !e.shiftKey
-
         ) {
 
             e.preventDefault();
@@ -1322,10 +1582,6 @@ function Assistant() {
 
     };
 
-
-    // ==================================================
-    // UI
-    // ==================================================
 
     return (
 
@@ -1503,3 +1759,4 @@ function Assistant() {
 
 
 export default Assistant;
+
