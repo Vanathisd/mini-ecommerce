@@ -3,8 +3,7 @@ const { Ollama } = require("ollama");
 const {
     searchProducts,
     getProductDetails,
-    findProductFromMessage,
-    findProductsFromCartMessage
+    findProductFromMessage
 } = require("./producttools");
 
 const ollama = new Ollama({
@@ -12,2414 +11,1163 @@ const ollama = new Ollama({
 });
 
 
+// =====================================================
+// CLEAN TEXT
+// =====================================================
+
+function cleanText(text) {
+    return String(text || "")
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
+
+// =====================================================
+// NORMALIZE TEXT
+// =====================================================
+
+function normalizeText(text) {
+    return String(text || "")
+        .toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+
+// =====================================================
+// EXTRACT PRODUCT NAME FROM ADD MESSAGE
+// =====================================================
+
+function extractProductNameFromCartMessage(message) {
+
+    let text = normalizeText(message);
+
+    text = text
+        .replace(/\badd\b/g, "")
+        .replace(/\bput\b/g, "")
+        .replace(/\bto\b/g, "")
+        .replace(/\binto\b/g, "")
+        .replace(/\bmy\b/g, "")
+        .replace(/\bcart\b/g, "")
+        .replace(/\bbasket\b/g, "")
+        .replace(/\bplease\b/g, "")
+        .replace(/\bquantity\b/g, "")
+        .replace(/\bqty\b/g, "")
+        .replace(/\bone more\b/g, "")
+        .replace(/\banother\b/g, "")
+        .replace(/\bmore\b/g, "")
+        .replace(/\b\d+\b/g, "");
+
+    return text.trim();
+}
+
+
+// =====================================================
+// EXTRACT PRODUCT NAME FROM REMOVE MESSAGE
+// =====================================================
+
+function extractProductNameFromRemoveMessage(message) {
+
+    let text = normalizeText(message);
+
+    text = text
+        .replace(/\bremove\b/g, "")
+        .replace(/\bdelete\b/g, "")
+        .replace(/\btake\b/g, "")
+        .replace(/\bfrom\b/g, "")
+        .replace(/\bmy\b/g, "")
+        .replace(/\bcart\b/g, "")
+        .replace(/\bbasket\b/g, "")
+        .replace(/\bplease\b/g, "")
+        .replace(/\bproduct\b/g, "");
+
+    return text.trim();
+}
+
+
+// =====================================================
+// EXTRACT PRODUCT NAME FROM QUANTITY MESSAGE
+// =====================================================
+
+function extractProductNameFromQuantityMessage(message) {
+
+    let text = normalizeText(message);
+
+    text = text
+        .replace(/\bincrease\b/g, "")
+        .replace(/\bincreased\b/g, "")
+        .replace(/\bdecrease\b/g, "")
+        .replace(/\bdecreased\b/g, "")
+        .replace(/\breduce\b/g, "")
+        .replace(/\breduced\b/g, "")
+        .replace(/\bincrement\b/g, "")
+        .replace(/\bincremented\b/g, "")
+        .replace(/\bdecrement\b/g, "")
+        .replace(/\bdecremented\b/g, "")
+        .replace(/\blower\b/g, "")
+        .replace(/\braise\b/g, "")
+        .replace(/\badd\b/g, "")
+        .replace(/\bone\b/g, "")
+        .replace(/\banother\b/g, "")
+        .replace(/\bmore\b/g, "")
+        .replace(/\bquantity\b/g, "")
+        .replace(/\bqty\b/g, "")
+        .replace(/\bcart\b/g, "")
+        .replace(/\bbasket\b/g, "")
+        .replace(/\bplease\b/g, "");
+
+    return text.trim();
+}
+
+
+// =====================================================
+// EXTRACT QUANTITY
+// =====================================================
+
+function extractQuantityFromAddMessage(message) {
+
+    const text = normalizeText(message);
+
+    const wordNumbers = {
+        one: 1,
+        two: 2,
+        three: 3,
+        four: 4,
+        five: 5,
+        six: 6,
+        seven: 7,
+        eight: 8,
+        nine: 9,
+        ten: 10
+    };
+
+    for (const [word, number] of Object.entries(wordNumbers)) {
+
+        if (new RegExp(`\\b${word}\\b`).test(text)) {
+            return number;
+        }
+    }
+
+    const numberMatch = text.match(/\b(\d+)\b/);
+
+    if (numberMatch) {
+        return parseInt(numberMatch[1], 10);
+    }
+
+    return 1;
+}
+
+
+// =====================================================
+// ADD TO CART REQUEST
+// =====================================================
+
+function isAddToCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\badd\b/.test(text) &&
+        (
+            /\bcart\b/.test(text) ||
+            /\bbasket\b/.test(text)
+        )
+    );
+}
+
+
+// =====================================================
+// INCREASE CART REQUEST
+// =====================================================
+
+function isIncreaseCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bincrease\b/.test(text) ||
+        /\bincrement\b/.test(text) ||
+        /\braise\b/.test(text) ||
+        /\badd one more\b/.test(text) ||
+        /\bone more\b/.test(text) ||
+        /\badd another\b/.test(text) ||
+        /\banother\b/.test(text)
+    );
+}
+
+
+// =====================================================
+// DECREASE CART REQUEST
+// =====================================================
+
+function isDecreaseCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bdecrease\b/.test(text) ||
+        /\bdecrement\b/.test(text) ||
+        /\breduce\b/.test(text) ||
+        /\blower\b/.test(text) ||
+        /\bremove one\b/.test(text) ||
+        /\bdecrease one\b/.test(text)
+    );
+}
+
+
+// =====================================================
+// CLEAR CART REQUEST
+// =====================================================
+
+function isClearCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bclear\b.*\bcart\b/.test(text) ||
+        /\bempty\b.*\bcart\b/.test(text) ||
+        /\bremove all\b.*\bcart\b/.test(text) ||
+        /\bdelete all\b.*\bcart\b/.test(text) ||
+        /\bremove all products\b/.test(text) ||
+        /\bdelete all products\b/.test(text)
+    );
+}
+
+
+// =====================================================
+// REMOVE SINGLE PRODUCT
+// =====================================================
+
+function isRemoveFromCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        (
+            /\bremove\b/.test(text) ||
+            /\bdelete\b/.test(text)
+        ) &&
+        !isClearCartRequest(message) &&
+        !isDecreaseCartRequest(message)
+    );
+}
+
+
+// =====================================================
+// SHOW CART REQUEST
+// =====================================================
+
+function isShowCartRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bshow\b.*\bcart\b/.test(text) ||
+        /\bview\b.*\bcart\b/.test(text) ||
+        /\bcheck\b.*\bcart\b/.test(text) ||
+        /\bwhat.*\bin.*\bcart\b/.test(text) ||
+        /\bwhats.*\bin.*\bcart\b/.test(text) ||
+        /^cart$/.test(text)
+    );
+}
+
+
+// =====================================================
+// CHECKOUT REQUEST
+// =====================================================
+
+function isCheckoutRequest(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bcheckout\b/.test(text) ||
+        /\bcheck out\b/.test(text) ||
+        /\bproceed to payment\b/.test(text) ||
+        /\bgo to payment\b/.test(text) ||
+        /\bbuy now\b/.test(text) ||
+        /\bplace order\b/.test(text)
+    );
+}
+
+
+// =====================================================
+// SPECIFIC PRODUCT QUESTION
+// =====================================================
+
+function isSpecificProductQuestion(message) {
+
+    const text = normalizeText(message);
+
+    return (
+        /\bprice\b/.test(text) ||
+        /\bcost\b/.test(text) ||
+        /\bstock\b/.test(text) ||
+        /\bavailable\b/.test(text) ||
+        /\bavailability\b/.test(text) ||
+        /\bdescription\b/.test(text) ||
+        /\bcategory\b/.test(text) ||
+        /\bsubcategory\b/.test(text)
+    );
+}
+
+
+// =====================================================
+// DETECT DETAIL TYPE
+// =====================================================
+
+function detectDetailType(message) {
+
+    const text = normalizeText(message);
+
+    if (/\bprice\b|\bcost\b/.test(text)) {
+        return "price";
+    }
+
+    if (
+        /\bstock\b/.test(text) ||
+        /\bavailable\b/.test(text) ||
+        /\bavailability\b/.test(text)
+    ) {
+        return "stock";
+    }
+
+    if (/\bdescription\b/.test(text)) {
+        return "description";
+    }
+
+    if (/\bsubcategory\b/.test(text)) {
+        return "subcategory";
+    }
+
+    if (/\bcategory\b/.test(text)) {
+        return "category";
+    }
+
+    return null;
+}
+
+
+// =====================================================
+// MAIN SHOPPING AGENT
+// =====================================================
+
 async function askShoppingAgent(message) {
 
     try {
 
-        const cleanMessage =
-            String(message || "")
-                .replace(/\s+/g, " ")
-                .trim();
-
+        const cleanMessage = cleanText(message);
 
         if (!cleanMessage) {
 
             return {
-                response:
-                    "Please tell me what product you are looking for.",
-                action:
-                    "none"
+                response: "Please enter a message."
             };
-
         }
 
 
-        const lowerMessage =
-            cleanMessage.toLowerCase();
+        const text = normalizeText(cleanMessage);
 
 
-        const generalWords = [
-            "hello",
-            "hi",
-            "hey",
-            "thanks",
-            "thank you",
-            "good morning",
-            "good afternoon",
-            "good evening"
-        ];
+        // =================================================
+        // GENERAL GREETING
+        // =================================================
 
+        const isGreeting =
+            /^(hi|hello|hey|hii|helo|good morning|good afternoon|good evening|thanks|thank you)$/
+                .test(text);
 
-        if (
-            generalWords.includes(
-                lowerMessage
-            )
-        ) {
+        if (isGreeting) {
 
-            const generalResponse =
+            const greeting =
                 await ollama.chat({
 
-                    model:
-                        "llama3.2:3b",
+                    model: "llama3.2:3b",
 
                     messages: [
-
                         {
-                            role:
-                                "system",
-
+                            role: "system",
                             content: `
+You are the shopping assistant for VELORA.
 
-You are the friendly VELORA Shopping Assistant.
-
-VELORA is a fashion and lifestyle e-commerce website.
-
-Be friendly, helpful and concise.
-
-Do not invent products.
+Reply naturally and briefly.
+Do not search products for simple greetings.
 `
                         },
-
                         {
-                            role:
-                                "user",
-
-                            content:
-                                cleanMessage
+                            role: "user",
+                            content: cleanMessage
                         }
-
                     ]
-
                 });
 
-
             return {
-
                 response:
-                    generalResponse.message.content,
-
-                action:
-                    "none"
-
+                    greeting?.message?.content?.trim() ||
+                    "Hello! Welcome to VELORA. How can I help you?"
             };
-
         }
 
 
-        console.log(
-            "======================================"
-        );
+        // =================================================
+        // SHOW CART
+        // =================================================
 
-        console.log(
-            "USER MESSAGE:",
-            cleanMessage
-        );
-
-        console.log(
-            "======================================"
-        );
-
-
-        const clearCartRequest =
-            isClearCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "CLEAR CART:",
-            clearCartRequest
-        );
-
-
-        if (clearCartRequest) {
+        if (isShowCartRequest(cleanMessage)) {
 
             return {
+                response:
+                    "Please check the cart section to view your current cart.",
+                action: "show_cart"
+            };
+        }
 
+
+        // =================================================
+        // CHECKOUT
+        // =================================================
+
+        if (isCheckoutRequest(cleanMessage)) {
+
+            return {
+                response:
+                    "Your cart is ready. Please proceed to the Checkout page to enter your delivery details, choose a payment method, and place your order.",
+                action: "checkout"
+            };
+        }
+
+
+        // =================================================
+        // CLEAR CART
+        // =================================================
+
+        if (isClearCartRequest(cleanMessage)) {
+
+            return {
                 response:
                     "All products have been removed from your cart.",
-
-                action:
-                    "clear_cart"
-
+                action: "clear_cart"
             };
-
         }
 
 
-        const checkoutRequest =
-            isCheckoutRequest(
-                cleanMessage
-            );
-
-        console.log(
-            "CHECKOUT REQUEST:",
-            checkoutRequest
-        );
-
-        if (checkoutRequest) {
-
-            console.log(
-                "CHECKOUT REQUEST DETECTED"
-            );
-
-            return {
-
-                response:
-                    "Sure! I'll take you to checkout to complete your order.",
-
-                action:
-                    "checkout"
-
-            };
-
-        }
-
-
-        // ==========================================
-        // SHOW MY ORDERS
-        // ==========================================
-
-        const showOrdersRequest =
-            isShowOrdersRequest(
-                cleanMessage
-            );
-
-        console.log(
-            "SHOW MY ORDERS:",
-            showOrdersRequest
-        );
-
-        if (showOrdersRequest) {
-
-            console.log(
-                "SHOW MY ORDERS REQUEST DETECTED"
-            );
-
-            return {
-
-                response:
-                    "Fetching your orders...",
-
-                action:
-                    "show_orders"
-
-            };
-
-        }
-
-
-        const decreaseCartRequest =
-            isDecreaseCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "DECREASE QUANTITY:",
-            decreaseCartRequest
-        );
-
-
-        if (decreaseCartRequest) {
-
-            console.log(
-                "DECREASE QUANTITY REQUEST DETECTED"
-            );
-
-
-            const quantity =
-                extractQuantity(
-                    cleanMessage,
-                    "decrease"
-                );
-
-
-            const productSearchText =
-                extractProductNameFromQuantityMessage(
-                    cleanMessage
-                );
-
-
-            console.log(
-                "DECREASE QUANTITY:",
-                quantity
-            );
-
-
-            console.log(
-                "PRODUCT SEARCH:",
-                productSearchText
-            );
-
-
-            let detectedProduct =
-                null;
-
-
-            if (productSearchText) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (!detectedProduct) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-            }
-
-
-            console.log(
-                "DECREASE DETECTED PRODUCT:",
-                detectedProduct
-                    ? detectedProduct.name
-                    : "NONE"
-            );
-
-
-            if (!detectedProduct) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProduct =
-                await getProductDetails(
-                    detectedProduct.name
-                );
-
-
-            if (!latestProduct) {
-
-                return {
-
-                    response:
-                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            return {
-
-                response:
-                    `${latestProduct.name} quantity has been decreased by ${quantity}.`,
-
-                action:
-                    "decrease_quantity",
-
-                quantity,
-
-                product:
-                    latestProduct
-
-            };
-
-        }
-
-
-        const increaseCartRequest =
-            isIncreaseCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "INCREASE QUANTITY:",
-            increaseCartRequest
-        );
-
-
-        if (increaseCartRequest) {
-
-            console.log(
-                "INCREASE QUANTITY REQUEST DETECTED"
-            );
-
-
-            const quantity =
-                extractQuantity(
-                    cleanMessage,
-                    "increase"
-                );
-
-
-            const productSearchText =
-                extractProductNameFromQuantityMessage(
-                    cleanMessage
-                );
-
-
-            console.log(
-                "INCREASE QUANTITY:",
-                quantity
-            );
-
-
-            console.log(
-                "PRODUCT SEARCH:",
-                productSearchText
-            );
-
-
-            let detectedProduct =
-                null;
-
-
-            if (productSearchText) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (!detectedProduct) {
-
-                detectedProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-            }
-
-
-            console.log(
-                "INCREASE DETECTED PRODUCT:",
-                detectedProduct
-                    ? detectedProduct.name
-                    : "NONE"
-            );
-
-
-            if (!detectedProduct) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProduct =
-                await getProductDetails(
-                    detectedProduct.name
-                );
-
-
-            if (!latestProduct) {
-
-                return {
-
-                    response:
-                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const stock =
-                Number(
-                    latestProduct.stock
-                );
-
-
-            if (
-                !Number.isFinite(stock) ||
-                stock <= 0
-            ) {
-
-                return {
-
-                    response:
-                        `${latestProduct.name} is currently out of stock.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            return {
-
-                response:
-                    `${latestProduct.name} quantity has been increased by ${quantity}.`,
-
-                action:
-                    "increase_quantity",
-
-                quantity,
-
-                product:
-                    latestProduct
-
-            };
-
-        }
-
-
-        const addToCartRequest =
-            isAddToCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "ADD TO CART:",
-            addToCartRequest
-        );
-
-
-        if (addToCartRequest) {
-
-            const productSearchText =
-                extractProductNameFromCartMessage(
-                    cleanMessage
-                );
-
-            let detectedProducts = [];
-
-
-            if (productSearchText) {
-
-                detectedProducts =
-                    await findProductsFromCartMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (detectedProducts.length === 0) {
-
-                const singleProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-                if (singleProduct) {
-
-                    detectedProducts = [
-                        singleProduct
-                    ];
-
-                }
-
-            }
-
-
-            if (detectedProducts.length === 0) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProducts = [];
-
-
-            for (
-                const product
-                of detectedProducts
-            ) {
-
-                const latestProduct =
-                    await getProductDetails(
-                        product.name
-                    );
-
-
-                if (latestProduct) {
-
-                    latestProducts.push(
-                        latestProduct
-                    );
-
-                }
-
-            }
-
-
-            if (latestProducts.length === 0) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find those products in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const productNames =
-                latestProducts.map(
-                    product =>
-                        product.name
-                );
-
-
-            let response;
-
-
-            if (
-                productNames.length === 1
-            ) {
-
-                response =
-                    `${productNames[0]} has been added to your cart.`;
-
-            }
-
-            else if (
-                productNames.length === 2
-            ) {
-
-                response =
-                    `${productNames[0]} and ${productNames[1]} have been added to your cart.`;
-
-            }
-
-            else {
-
-                response =
-                    `${productNames
-                        .slice(0, -1)
-                        .join(", ")} and ${productNames.at(-1)} have been added to your cart.`;
-
-            }
-
-
-            return {
-
-                response,
-
-                action:
-                    "add_to_cart",
-
-                products:
-                    latestProducts
-
-            };
-
-        }
-
-
-        // ==========================================
-        // REMOVE FROM CART
-        // MODIFIED ONLY FOR MULTIPLE PRODUCTS
-        // ==========================================
-
-        const removeFromCartRequest =
-            isRemoveFromCartRequest(
-                cleanMessage
-            );
-
-
-        console.log(
-            "REMOVE FROM CART:",
-            removeFromCartRequest
-        );
-
-
-        if (removeFromCartRequest) {
-
-            const productSearchText =
-                extractProductNameFromRemoveMessage(
-                    cleanMessage
-                );
-
-
-            let detectedProducts = [];
-
-
-            if (productSearchText) {
-
-                detectedProducts =
-                    await findProductsFromCartMessage(
-                        productSearchText
-                    );
-
-            }
-
-
-            if (
-                detectedProducts.length === 0
-            ) {
-
-                const singleProduct =
-                    await findProductFromMessage(
-                        cleanMessage
-                    );
-
-
-                if (singleProduct) {
-
-                    detectedProducts = [
-                        singleProduct
-                    ];
-
-                }
-
-            }
-
-
-            console.log(
-                "REMOVE DETECTED PRODUCTS:",
-                detectedProducts.map(
-                    product =>
-                        product.name
-                )
-            );
-
-
-            if (
-                detectedProducts.length === 0
-            ) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find that product in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const latestProducts = [];
-
-
-            for (
-                const product
-                of detectedProducts
-            ) {
-
-                const latestProduct =
-                    await getProductDetails(
-                        product.name
-                    );
-
-
-                if (latestProduct) {
-
-                    latestProducts.push(
-                        latestProduct
-                    );
-
-                }
-
-            }
-
-
-            if (
-                latestProducts.length === 0
-            ) {
-
-                return {
-
-                    response:
-                        "Sorry, I couldn't find those products in VELORA.",
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const productNames =
-                latestProducts.map(
-                    product =>
-                        product.name
-                );
-
-
-            let response;
-
-
-            if (
-                productNames.length === 1
-            ) {
-
-                response =
-                    `${productNames[0]} has been removed from your cart.`;
-
-            }
-
-            else if (
-                productNames.length === 2
-            ) {
-
-                response =
-                    `${productNames[0]} and ${productNames[1]} have been removed from your cart.`;
-
-            }
-
-            else {
-
-                response =
-                    `${productNames
-                        .slice(0, -1)
-                        .join(", ")} and ${productNames.at(-1)} have been removed from your cart.`;
-
-            }
-
-
-            return {
-
-                response,
-
-                action:
-                    "remove_from_cart",
-
-                products:
-                    latestProducts
-
-            };
-
-        }
-
-
-        const detectedProduct =
-            await findProductFromMessage(
-                cleanMessage
-            );
-
-
-        console.log(
-            "Database detected product:",
-            detectedProduct
-                ? `${detectedProduct.name} | ${detectedProduct.stock}`
-                : "NONE"
-        );
-
-
-        const specificQuestion =
-            isSpecificProductQuestion(
-                cleanMessage
-            );
-
+        // =================================================
+        // ADD TO CART
+        // =================================================
 
         if (
-            detectedProduct &&
-            specificQuestion
+            isAddToCartRequest(cleanMessage) &&
+            !isIncreaseCartRequest(cleanMessage)
         ) {
+
+            const productName =
+                extractProductNameFromCartMessage(cleanMessage);
+
+            const quantity =
+                extractQuantityFromAddMessage(cleanMessage);
+
+            if (quantity <= 0) {
+
+                return {
+                    response: "Please provide a valid quantity."
+                };
+            }
+
+            const product =
+                await findProductFromMessage(productName);
+
+            if (!product) {
+
+                return {
+                    response:
+                        `Sorry, I couldn't find "${productName}".`
+                };
+            }
 
             const latestProduct =
                 await getProductDetails(
-                    detectedProduct.name
+                    product._id || product.id
                 );
-
 
             if (!latestProduct) {
 
                 return {
-
                     response:
-                        `Sorry, I couldn't find ${detectedProduct.name} in VELORA.`,
-
-                    action:
-                        "none"
-
+                        "Sorry, I couldn't get the product details."
                 };
-
             }
 
-
-            const detailType =
-                detectDetailType(
-                    cleanMessage
-                );
-
-
-            if (
-                detailType ===
-                "price_stock"
-            ) {
-
-                const stock =
-                    Number(
-                        latestProduct.stock
-                    );
-
-
-                const availability =
-                    Number.isFinite(stock) &&
-                    stock > 0
-                        ? `In stock (${stock})`
-                        : "Out of stock";
-
+            if (latestProduct.stock <= 0) {
 
                 return {
-
                     response:
-                        `${latestProduct.name} costs ₹${latestProduct.price} and is ${availability.toLowerCase()}.`,
-
-                    action:
-                        "none"
-
+                        `${latestProduct.name} is currently out of stock.`
                 };
-
             }
 
-
-            if (
-                detailType ===
-                "price"
-            ) {
+            if (quantity > latestProduct.stock) {
 
                 return {
-
                     response:
-                        `The price of ${latestProduct.name} is ₹${latestProduct.price}.`,
-
-                    action:
-                        "none"
-
+                        `Only ${latestProduct.stock} ${latestProduct.name} are available.`
                 };
-
             }
-
-
-            if (
-                detailType ===
-                "stock"
-            ) {
-
-                const stock =
-                    Number(
-                        latestProduct.stock
-                    );
-
-
-                if (
-                    Number.isFinite(stock) &&
-                    stock > 0
-                ) {
-
-                    return {
-
-                        response:
-                            `${latestProduct.name} is currently in stock. ${stock} items are available.`,
-
-                        action:
-                            "none"
-
-                    };
-
-                }
-
-
-                return {
-
-                    response:
-                        `${latestProduct.name} is currently out of stock.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            if (
-                detailType ===
-                "description"
-            ) {
-
-                return {
-
-                    response:
-                        latestProduct.description
-                            ? `${latestProduct.name}: ${latestProduct.description}`
-                            : `Sorry, no description is available for ${latestProduct.name}.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            if (
-                detailType ===
-                "category"
-            ) {
-
-                return {
-
-                    response:
-                        `${latestProduct.name} belongs to the ${latestProduct.category} category.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            if (
-                detailType ===
-                "subcategory"
-            ) {
-
-                return {
-
-                    response:
-                        `${latestProduct.name} is listed under the ${latestProduct.subcategory} subcategory.`,
-
-                    action:
-                        "none"
-
-                };
-
-            }
-
-
-            const stock =
-                Number(
-                    latestProduct.stock
-                );
-
-
-            const availability =
-                Number.isFinite(stock) &&
-                stock > 0
-                    ? `In stock (${stock})`
-                    : "Out of stock";
-
-
-            let fullResponse =
-
-                `Here are the details for ${latestProduct.name}:\n\n` +
-
-                `Name: ${latestProduct.name}\n` +
-
-                `Price: ₹${latestProduct.price}\n` +
-
-                `Category: ${latestProduct.category}\n` +
-
-                `Subcategory: ${latestProduct.subcategory}\n` +
-
-                `Availability: ${availability}\n`;
-
-
-            if (
-                latestProduct.description
-            ) {
-
-                fullResponse +=
-                    `Description: ${latestProduct.description}\n`;
-
-            }
-
-
-            fullResponse +=
-                "\nWould you like me to help you find something else?";
-
 
             return {
-
                 response:
-                    fullResponse,
-
-                action:
-                    "none"
-
+                    `${latestProduct.name} has been added to your cart.`,
+                action: "add_to_cart",
+                product: latestProduct,
+                quantity
             };
-
         }
 
 
-        const aiResponse =
+        // =================================================
+        // INCREASE QUANTITY
+        // =================================================
+
+        if (isIncreaseCartRequest(cleanMessage)) {
+
+            const productName =
+                extractProductNameFromQuantityMessage(cleanMessage);
+
+            const product =
+                await findProductFromMessage(productName);
+
+            if (!product) {
+
+                return {
+                    response:
+                        `Sorry, I couldn't find "${productName}".`
+                };
+            }
+
+            const latestProduct =
+                await getProductDetails(
+                    product._id || product.id
+                );
+
+            if (!latestProduct) {
+
+                return {
+                    response:
+                        "Sorry, I couldn't get the product details."
+                };
+            }
+
+            if (latestProduct.stock <= 0) {
+
+                return {
+                    response:
+                        `${latestProduct.name} is currently out of stock.`
+                };
+            }
+
+            return {
+                response:
+                    `${latestProduct.name} quantity has been increased.`,
+                action: "increase_quantity",
+                product: latestProduct
+            };
+        }
+
+
+        // =================================================
+        // DECREASE QUANTITY
+        // =================================================
+
+        if (isDecreaseCartRequest(cleanMessage)) {
+
+            const productName =
+                extractProductNameFromQuantityMessage(cleanMessage);
+
+            const product =
+                await findProductFromMessage(productName);
+
+            if (!product) {
+
+                return {
+                    response:
+                        `Sorry, I couldn't find "${productName}".`
+                };
+            }
+
+            const latestProduct =
+                await getProductDetails(
+                    product._id || product.id
+                );
+
+            if (!latestProduct) {
+
+                return {
+                    response:
+                        "Sorry, I couldn't get the product details."
+                };
+            }
+
+            return {
+                response:
+                    `${latestProduct.name} quantity has been decreased.`,
+                action: "decrease_quantity",
+                product: latestProduct
+            };
+        }
+
+
+        // =================================================
+        // REMOVE SINGLE PRODUCT
+        // =================================================
+
+        if (isRemoveFromCartRequest(cleanMessage)) {
+
+            const productName =
+                extractProductNameFromRemoveMessage(cleanMessage);
+
+            const product =
+                await findProductFromMessage(productName);
+
+            if (!product) {
+
+                return {
+                    response:
+                        `Sorry, I couldn't find "${productName}".`
+                };
+            }
+
+            const latestProduct =
+                await getProductDetails(
+                    product._id || product.id
+                );
+
+            if (!latestProduct) {
+
+                return {
+                    response:
+                        "Sorry, I couldn't get the product details."
+                };
+            }
+
+            return {
+                response:
+                    `${latestProduct.name} has been removed from your cart.`,
+                action: "remove_from_cart",
+                product: latestProduct
+            };
+        }
+
+
+        // =================================================
+        // SPECIFIC PRODUCT DETAILS
+        // =================================================
+
+        if (isSpecificProductQuestion(cleanMessage)) {
+
+            const product =
+                await findProductFromMessage(cleanMessage);
+
+            if (product) {
+
+                const latestProduct =
+                    await getProductDetails(
+                        product._id || product.id
+                    );
+
+                if (latestProduct) {
+
+                    const detailType =
+                        detectDetailType(cleanMessage);
+
+                    let response = "";
+
+                    switch (detailType) {
+
+                        case "price":
+
+                            response =
+                                `${latestProduct.name} costs ₹${latestProduct.price}.`;
+
+                            break;
+
+                        case "stock":
+
+                            response =
+                                latestProduct.stock > 0
+                                    ? `${latestProduct.name} is available with ${latestProduct.stock} items in stock.`
+                                    : `${latestProduct.name} is currently out of stock.`;
+
+                            break;
+
+                        case "description":
+
+                            response =
+                                `${latestProduct.name}: ${latestProduct.description || "No description available."}`;
+
+                            break;
+
+                        case "category":
+
+                            response =
+                                `${latestProduct.name} belongs to the ${latestProduct.category} category.`;
+
+                            break;
+
+                        case "subcategory":
+
+                            response =
+                                `${latestProduct.name} belongs to the ${latestProduct.subcategory} subcategory.`;
+
+                            break;
+                    }
+
+                    if (response) {
+
+                        return {
+                            response,
+                            product: latestProduct
+                        };
+                    }
+                }
+            }
+        }
+
+
+        // =================================================
+        // ASK OLLAMA TO UNDERSTAND PRODUCT SEARCH
+        // =================================================
+
+        const result =
             await ollama.chat({
 
-                model:
-                    "llama3.2:3b",
+                model: "llama3.2:3b",
 
                 messages: [
 
                     {
-
-                        role:
-                            "system",
+                        role: "system",
 
                         content: `
-
-You are the VELORA Shopping Assistant.
-
-Your job is ONLY to understand the customer's
-shopping request and return JSON.
+You are the product search assistant for VELORA fashion store.
 
 Return ONLY valid JSON.
 
-Do not use markdown.
-Do not add explanations.
-
-AVAILABLE CATEGORIES:
-
-Women
-Men
-Accessories
-
-AVAILABLE SUBCATEGORIES:
-
-Women:
-Dresses
-Tops
-Ethnic Wear
-
-Men:
-Shirts
-Jeans
-Jackets
-
-Accessories:
-Bags
-Wallets
-Watches
-Sunglasses
-
-CATEGORY MAPPING:
-
-Dresses -> Women
-Tops -> Women
-Ethnic Wear -> Women
-
-Shirts -> Men
-Jeans -> Men
-Jackets -> Men
-
-Bags -> Accessories
-Wallets -> Accessories
-Watches -> Accessories
-Sunglasses -> Accessories
-
-NEW ARRIVALS:
-
-New Arrivals is NOT a category.
-
-If customer asks for new arrivals,
-set:
-
-"isNewArrival": true
-
-PRICE FILTERS:
-
-under 1000
-=> maxPrice = 1000
-
-below 1000
-=> maxPrice = 1000
-
-less than 1000
-=> maxPrice = 1000
-
-above 1000
-=> minPrice = 1000
-
-more than 1000
-=> minPrice = 1000
-
-between 500 and 1500
-=> minPrice = 500
-maxPrice = 1500
-
-PRICE SORTING:
-
-most expensive -> price_desc
-most costly -> price_desc
-highest price -> price_desc
-cheapest -> price_asc
-least expensive -> price_asc
-lowest price -> price_asc
-
-RATING SORTING:
-
-highest rated -> rating_desc
-best rated -> rating_desc
-top rated -> rating_desc
-
-RECOMMENDATIONS:
-
-some
-few
-suggest
-recommend
-
-set:
-
-showAll = false
-
-For normal category searches:
-
-showAll = true
-
-JSON FORMAT:
+Use exactly this structure:
 
 {
-"category": null,
-"subcategory": null,
-"minPrice": null,
-"maxPrice": null,
-"search": null,
-"productName": null,
-"detailType": null,
-"sortBy": null,
-"isNewArrival": false,
-"showAll": false,
-"general": false,
-"productDetails": false
+    "category": "",
+    "subcategory": "",
+    "minPrice": null,
+    "maxPrice": null,
+    "search": "",
+    "productName": "",
+    "detailType": "",
+    "sortBy": "",
+    "isNewArrival": false,
+    "showAll": false,
+    "general": false,
+    "productDetails": false
 }
+
+Allowed sortBy values:
+
+price_asc
+price_desc
+rating_desc
+
+Rules:
+
+1. "cheapest" means price_asc.
+2. "lowest price" means price_asc.
+3. "least expensive" means price_asc.
+4. "most expensive" means price_desc.
+5. "highest price" means price_desc.
+6. "costliest" means price_desc.
+7. "highest rated" means rating_desc.
+8. "best rated" means rating_desc.
+9. "top rated" means rating_desc.
+10. "new arrivals" means isNewArrival=true.
+11. "all products" means showAll=true.
+12. Use search for product names or keywords.
+13. Do not invent product names.
+14. Keep unknown values empty or null.
 `
                     },
 
                     {
-
-                        role:
-                            "user",
-
-                        content:
-                            cleanMessage
-
+                        role: "user",
+                        content: cleanMessage
                     }
 
                 ]
-
             });
 
 
-        let intent;
+        // =================================================
+        // PARSE OLLAMA JSON
+        // =================================================
 
+        let parsed;
 
         try {
 
-            let jsonText =
-                aiResponse
-                    .message
-                    .content
-                    .replace(
-                        /```json/gi,
-                        ""
-                    )
-                    .replace(
-                        /```/g,
-                        ""
-                    )
-                    .trim();
+            parsed =
+                JSON.parse(result.message.content);
 
+        } catch (error) {
 
-            intent =
-                JSON.parse(
-                    jsonText
-                );
+            const jsonMatch =
+                result.message.content.match(/\{[\s\S]*\}/);
 
+            if (jsonMatch) {
+
+                parsed =
+                    JSON.parse(jsonMatch[0]);
+
+            } else {
+
+                return {
+                    response:
+                        "Sorry, I couldn't understand your request."
+                };
+            }
         }
 
-        catch (error) {
 
-            console.error(
-                "Could not parse Ollama JSON:",
-                aiResponse.message.content
+        // =================================================
+        // CATEGORY CORRECTIONS
+        // =================================================
+
+        if (/\bdresses?\b/.test(text)) {
+
+            parsed.subcategory = "Dresses";
+            parsed.category = "Women";
+        }
+
+        if (/\btops?\b/.test(text)) {
+
+            parsed.subcategory = "Tops";
+            parsed.category = "Women";
+        }
+
+        if (/\bethnic wear\b/.test(text)) {
+
+            parsed.subcategory = "Ethnic Wear";
+            parsed.category = "Women";
+        }
+
+        if (/\bouterwear\b/.test(text)) {
+
+            parsed.subcategory = "Outerwear";
+            parsed.category = "Women";
+        }
+
+        if (/\bshirts?\b/.test(text)) {
+
+            parsed.subcategory = "Shirts";
+            parsed.category = "Men";
+        }
+
+        if (/\bjeans?\b/.test(text)) {
+
+            parsed.subcategory = "Jeans";
+            parsed.category = "Men";
+        }
+
+        if (/\bjackets?\b/.test(text)) {
+
+            parsed.subcategory = "Jackets";
+        }
+
+        if (/\bbags?\b/.test(text)) {
+
+            parsed.subcategory = "Bags";
+            parsed.category = "Accessories";
+        }
+
+        if (/\bwallets?\b/.test(text)) {
+
+            parsed.subcategory = "Wallets";
+            parsed.category = "Accessories";
+        }
+
+        if (/\bwatches?\b/.test(text)) {
+
+            parsed.subcategory = "Watches";
+            parsed.category = "Accessories";
+        }
+
+        if (/\bsunglasses\b/.test(text)) {
+
+            parsed.subcategory = "Sunglasses";
+            parsed.category = "Accessories";
+        }
+
+
+        // =================================================
+        // CATEGORY
+        // =================================================
+
+        if (/\bwomen\b|\bwomens\b/.test(text)) {
+
+            parsed.category = "Women";
+        }
+
+        if (/\bmen\b|\bmens\b/.test(text)) {
+
+            parsed.category = "Men";
+        }
+
+        if (/\baccessories\b|\baccessory\b/.test(text)) {
+
+            parsed.category = "Accessories";
+        }
+
+
+        // =================================================
+        // NEW ARRIVALS
+        // =================================================
+
+        if (
+            /\bnew arrivals?\b/.test(text) ||
+            /\bnew products?\b/.test(text) ||
+            /\blatest products?\b/.test(text)
+        ) {
+
+            parsed.isNewArrival = true;
+        }
+
+
+        // =================================================
+        // PRICE FILTER - UNDER
+        // =================================================
+
+        const underPrice =
+            text.match(
+                /(?:under|below|less than|up to)\s*(?:₹|rs\.?|rupees?)?\s*(\d+)/
             );
 
+        if (underPrice) {
 
-            return {
+            parsed.maxPrice =
+                parseInt(underPrice[1], 10);
+        }
 
-                response:
-                    "Sorry, I couldn't understand your request. Please try again.",
 
-                action:
-                    "none"
+        // =================================================
+        // PRICE FILTER - ABOVE
+        // =================================================
 
-            };
+        const abovePrice =
+            text.match(
+                /(?:above|over|more than|greater than)\s*(?:₹|rs\.?|rupees?)?\s*(\d+)/
+            );
 
+        if (abovePrice) {
+
+            parsed.minPrice =
+                parseInt(abovePrice[1], 10);
+        }
+
+
+        // =================================================
+        // PRICE FILTER - BETWEEN
+        // =================================================
+
+        const betweenPrice =
+            text.match(
+                /between\s*(?:₹|rs\.?|rupees?)?\s*(\d+)\s*(?:and|to|-)\s*(?:₹|rs\.?|rupees?)?\s*(\d+)/
+            );
+
+        if (betweenPrice) {
+
+            parsed.minPrice =
+                parseInt(betweenPrice[1], 10);
+
+            parsed.maxPrice =
+                parseInt(betweenPrice[2], 10);
+        }
+
+
+        // =================================================
+        // SORTING
+        // =================================================
+
+        if (
+            /\bcheapest\b/.test(text) ||
+            /\blowest price\b/.test(text) ||
+            /\bleast expensive\b/.test(text) ||
+            /\blow price\b/.test(text)
+        ) {
+
+            parsed.sortBy = "price_asc";
         }
 
 
         if (
-            /\bdresses?\b/i.test(
-                cleanMessage
-            )
+            /\bmost expensive\b/.test(text) ||
+            /\bhighest price\b/.test(text) ||
+            /\bcostliest\b/.test(text) ||
+            /\bmost costly\b/.test(text)
         ) {
 
-            intent.category =
-                "Women";
-
-            intent.subcategory =
-                "Dresses";
-
-        }
-
-        else if (
-            /\btops?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Women";
-
-            intent.subcategory =
-                "Tops";
-
-        }
-
-        else if (
-            /\b(ethnic wear|ethnicwear|traditional wear)\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Women";
-
-            intent.subcategory =
-                "Ethnic Wear";
-
-        }
-
-        else if (
-            /\bshirts?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Men";
-
-            intent.subcategory =
-                "Shirts";
-
-        }
-
-        else if (
-            /\bjeans?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Men";
-
-            intent.subcategory =
-                "Jeans";
-
-        }
-
-        else if (
-            /\bjackets?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Men";
-
-            intent.subcategory =
-                "Jackets";
-
-        }
-
-        else if (
-            /\bbags?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Accessories";
-
-            intent.subcategory =
-                "Bags";
-
-        }
-
-        else if (
-            /\bwallets?\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Accessories";
-
-            intent.subcategory =
-                "Wallets";
-
-        }
-
-        else if (
-            /\b(watches|watch)\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Accessories";
-
-            intent.subcategory =
-                "Watches";
-
-        }
-
-        else if (
-            /\b(sunglasses|sunglass)\b/i.test(
-                cleanMessage
-            )
-        ) {
-
-            intent.category =
-                "Accessories";
-
-            intent.subcategory =
-                "Sunglasses";
-
+            parsed.sortBy = "price_desc";
         }
 
 
         if (
-            /\b(cheapest|lowest price|least expensive|low price)\b/i.test(
-                lowerMessage
-            )
+            /\bhighest rated\b/.test(text) ||
+            /\bhighest rating\b/.test(text) ||
+            /\bbest rated\b/.test(text) ||
+            /\btop rated\b/.test(text) ||
+            /\bbest rating\b/.test(text) ||
+            /\bhighestrated\b/.test(text)
         ) {
 
-            intent.sortBy =
-                "price_asc";
-
-        }
-
-        else if (
-            /\b(most expensive|highest price|costliest|most costly|expensive)\b/i.test(
-                lowerMessage
-            )
-        ) {
-
-            intent.sortBy =
-                "price_desc";
-
-        }
-
-        else if (
-            /\b(highest rated|highest rating|best rated|top rated|best rating|highestrated)\b/i.test(
-                lowerMessage
-            )
-        ) {
-
-            intent.sortBy =
-                "rating_desc";
-
+            parsed.sortBy = "rating_desc";
         }
 
 
-        const recommendationWords = [
-            "suggest",
-            "recommend",
-            "some",
-            "few"
-        ];
+        // =================================================
+        // SORT REQUEST
+        // =================================================
 
+        if (parsed.sortBy) {
 
-        const isRecommendation =
-            recommendationWords.some(
-                word =>
-                    new RegExp(
-                        `\\b${word}\\b`,
-                        "i"
-                    ).test(
-                        cleanMessage
-                    )
-            );
-
-
-        const numberMatch =
-            lowerMessage.match(
-                /\b([1-3])\b/
-            );
-
-
-        const hasSmallNumber =
-            Boolean(
-                numberMatch
-            );
-
-
-        if (
-            intent.sortBy
-        ) {
-
-            intent.showAll =
-                false;
-
+            parsed.showAll = false;
         }
 
-        else if (
-            intent.category ||
-            intent.subcategory
-        ) {
 
-            intent.showAll =
-                !isRecommendation &&
-                !hasSmallNumber;
-
-        }
-
+        // =================================================
+        // SEARCH PRODUCTS
+        // =================================================
 
         const products =
             await searchProducts({
 
                 category:
-                    intent.category,
+                    parsed.category || null,
 
                 subcategory:
-                    intent.subcategory,
+                    parsed.subcategory || null,
 
                 minPrice:
-                    intent.minPrice,
+                    parsed.minPrice ?? null,
 
                 maxPrice:
-                    intent.maxPrice,
+                    parsed.maxPrice ?? null,
 
                 search:
-                    intent.search,
+                    parsed.search ||
+                    parsed.productName ||
+                    "",
 
                 isNewArrival:
-                    intent.isNewArrival === true,
+                    parsed.isNewArrival || false,
 
                 sortBy:
-                    intent.sortBy
-
+                    parsed.sortBy || null
             });
 
 
-        if (
-            !products ||
-            products.length === 0
-        ) {
+        // =================================================
+        // NO PRODUCTS
+        // =================================================
+
+        if (!products || products.length === 0) {
 
             return {
-
                 response:
-                    "Sorry, I couldn't find any matching products currently available at VELORA.",
-
-                action:
-                    "none"
-
+                    "Sorry, I couldn't find any products matching your request."
             };
-
         }
 
 
-        let productsToShow;
+        // =================================================
+        // DISPLAY PRODUCTS
+        // =================================================
 
+        let displayProducts = products;
 
-        if (
-            intent.sortBy
-        ) {
+        if (parsed.sortBy) {
 
-            productsToShow =
-                products.slice(
-                    0,
-                    1
-                );
+            displayProducts =
+                products.slice(0, 1);
 
-        }
+        } else if (parsed.showAll) {
 
-        else if (
-            intent.showAll
-        ) {
-
-            productsToShow =
+            displayProducts =
                 products;
 
-        }
+        } else {
 
-        else {
-
-            productsToShow =
-                products.slice(
-                    0,
-                    3
-                );
-
+            displayProducts =
+                products.slice(0, 3);
         }
 
 
-        let responseText =
-            "Here are some matching products available at VELORA:\n\n";
+        // =================================================
+        // RESPONSE TITLE
+        // =================================================
+
+        let response = "";
+
+        if (parsed.sortBy === "price_asc") {
+
+            response =
+                "Here is the cheapest option:\n\n";
+
+        } else if (parsed.sortBy === "price_desc") {
+
+            response =
+                "Here is the most expensive option:\n\n";
+
+        } else if (parsed.sortBy === "rating_desc") {
+
+            response =
+                "Here is the highest-rated option:\n\n";
+
+        } else {
+
+            response =
+                "Here are the products I found:\n\n";
+        }
 
 
-        productsToShow.forEach(
-            (
-                product,
-                index
-            ) => {
+        // =================================================
+        // PRODUCT LIST
+        // =================================================
 
-                const stock =
-                    Number(
-                        product.stock
-                    );
+        displayProducts.forEach((product, index) => {
 
-
-                const availability =
-                    Number.isFinite(stock) &&
-                    stock > 0
-                        ? `In stock (${stock})`
-                        : "Out of stock";
-
-
-                responseText +=
-
-                    `${index + 1}. ${product.name}\n` +
-
-                    `   Price: ₹${product.price}\n` +
-
-                    `   Availability: ${availability}\n\n`;
-
-            }
-        );
-
-
-        responseText +=
-            "Would you like me to help you find something else?";
+            response +=
+                `${index + 1}. ${product.name}\n` +
+                `Price: ₹${product.price}\n` +
+                `Availability: ${
+                    product.stock > 0
+                        ? `${product.stock} in stock`
+                        : "Out of stock"
+                }\n\n`;
+        });
 
 
         return {
-
-            response:
-                responseText,
-
-            action:
-                "none"
-
+            response,
+            products: displayProducts
         };
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(
-            "Ollama Shopping Agent Error:",
+            "Shopping Agent Error:",
             error
         );
 
-        throw error;
-
+        return {
+            response:
+                "Sorry, something went wrong while processing your request."
+        };
     }
-
-}
-
-
-function extractAddQuantity(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase();
-
-
-    if (
-        /\badd\s+one\s+more\b/i.test(
-            text
-        )
-    ) {
-
-        return 1;
-
-    }
-
-
-    if (
-        /\badd\s+another\b/i.test(
-            text
-        )
-    ) {
-
-        return 1;
-
-    }
-
-
-    const numberMatch =
-        text.match(
-            /\badd\s+(\d+)\b/i
-        );
-
-
-    if (
-        numberMatch
-    ) {
-
-        const number =
-            Number(
-                numberMatch[1]
-            );
-
-
-        if (
-            Number.isFinite(number) &&
-            number > 0
-        ) {
-
-            return Math.floor(
-                number
-            );
-
-        }
-
-    }
-
-
-    return 1;
-
-}
-
-
-function extractQuantity(
-    message,
-    type
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase();
-
-
-    const byMatch =
-        text.match(
-            new RegExp(
-                `${type}[^0-9]{0,30}by\\s+(\\d+)`,
-                "i"
-            )
-        );
-
-
-    if (
-        byMatch
-    ) {
-
-        const number =
-            Number(
-                byMatch[1]
-            );
-
-
-        if (
-            Number.isFinite(number) &&
-            number > 0
-        ) {
-
-            return Math.floor(
-                number
-            );
-
-        }
-
-    }
-
-
-    const directMatch =
-        text.match(
-            new RegExp(
-                `\\b${type}\\s+(\\d+)`,
-                "i"
-            )
-        );
-
-
-    if (
-        directMatch
-    ) {
-
-        const number =
-            Number(
-                directMatch[1]
-            );
-
-
-        if (
-            Number.isFinite(number) &&
-            number > 0
-        ) {
-
-            return Math.floor(
-                number
-            );
-
-        }
-
-    }
-
-
-    if (
-        /\bone\s+more\b/i.test(
-            text
-        )
-    ) {
-
-        return 1;
-
-    }
-
-
-    if (
-        /\bone\s+less\b/i.test(
-            text
-        )
-    ) {
-
-        return 1;
-
-    }
-
-
-    return 1;
-
-}
-
-
-function extractProductNameFromCartMessage(
-    message
-) {
-
-    let text =
-        String(message || "")
-            .trim();
-
-
-    text =
-        text.replace(
-            /^(please\s+)?(add|put|place)\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^\d+\s+/,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^one\s+more\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^another\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+(to|in)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^(please\s+)?buy\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^i\s+want\s+to\s+buy\s+/i,
-            ""
-        );
-
-
-    return text.trim();
-
-}
-
-
-function extractProductNameFromRemoveMessage(
-    message
-) {
-
-    let text =
-        String(message || "")
-            .trim();
-
-
-    text =
-        text.replace(
-            /^(please\s+)?(remove|delete|take)\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+(from|out\s+of)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^i\s+don't\s+want\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^i\s+do\s+not\s+want\s+/i,
-            ""
-        );
-
-
-    return text.trim();
-
-}
-
-
-function extractProductNameFromQuantityMessage(
-    message
-) {
-
-    let text =
-        String(message || "")
-            .trim();
-
-
-    text =
-        text.replace(
-            /^(please\s+)?(increase|decrease|reduce|increment|decrement|lower|raise)\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^(please\s+)?add\s+one\s+more\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^(please\s+)?add\s+another\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^(please\s+)?add\s+more\s+/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+by\s+\d+\s*$/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /^\d+\s+/,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+(quantity|qty)\s*$/i,
-            ""
-        );
-
-
-    text =
-        text.replace(
-            /\s+(in|to|from)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
-            ""
-        );
-
-
-    return text.trim();
-
-}
-
-
-function isAddToCartRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\badd\s+\d+\b/i,
-
-        /\badd\s+\d+\s+.*\b(cart|basket)\b/i,
-
-        /\badd\s+one\s+more\b/i,
-
-        /\badd\s+another\b/i,
-
-        /\badd\b.*\bto\s+(my\s+)?cart\b/i,
-
-        /\bput\b.*\bin\s+(my\s+)?cart\b/i,
-
-        /\bplace\b.*\bin\s+(my\s+)?cart\b/i,
-
-        /\badd\b.*\bto\s+(my\s+)?basket\b/i,
-
-        /\bput\b.*\bin\s+(my\s+)?basket\b/i,
-
-        /\bbuy\b.*\b(this|that|it)\b/i,
-
-        /\bi\s+want\s+to\s+buy\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isIncreaseCartRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bincrease\b/i,
-
-        /\bincrement\b/i,
-
-        /\braise\b.*\bquantity\b/i,
-
-        /\badd\s+one\s+more\b/i,
-
-        /\badd\s+another\b/i,
-
-        /\bone\s+more\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isDecreaseCartRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bdecrease\b/i,
-
-        /\breduce\b/i,
-
-        /\bdecrement\b/i,
-
-        /\blower\b.*\bquantity\b/i,
-
-        /\bremove\s+one\b/i,
-
-        /\bone\s+less\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isClearCartRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bclear\s+(my\s+)?cart\b/i,
-
-        /\bempty\s+(my\s+)?cart\b/i,
-
-        /\bremove\s+everything\s+from\s+(my\s+)?cart\b/i,
-
-        /\bremove\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
-
-        /\bremove\s+all\s+(items\s+)?from\s+(my\s+)?cart\b/i,
-
-        /\bdelete\s+everything\s+from\s+(my\s+)?cart\b/i,
-
-        /\bdelete\s+all\s+(products\s+)?from\s+(my\s+)?cart\b/i,
-
-        /\bdelete\s+all\s+(items\s+)?from\s+(my\s+)?cart\b/i,
-
-        /\bremove\s+all\s+products\s+from\s+cart\b/i,
-
-        /\bremove\s+all\s+items\s+from\s+cart\b/i,
-
-        /\bremove\s+all\s+from\s+cart\b/i,
-
-        /\bdelete\s+all\s+from\s+cart\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isCheckoutRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /^checkout$/i,
-
-        /\bgo\s+to\s+checkout\b/i,
-
-        /\bproceed\s+to\s+checkout\b/i,
-
-        /\bproceed\s+checkout\b/i,
-
-        /\bcontinue\s+to\s+checkout\b/i,
-
-        /\bcomplete\s+(my\s+)?order\b/i,
-
-        /\bplace\s+(my\s+)?order\b/i,
-
-        /\bplace\s+order\b/i,
-
-        /\bbuy\s+(my\s+)?cart\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-// ==========================================
-// NEW FUNCTION: SHOW MY ORDERS
-// ==========================================
-
-function isShowOrdersRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bshow\s+(my\s+)?orders?\b/i,
-
-        /\bview\s+(my\s+)?orders?\b/i,
-
-        /\bsee\s+(my\s+)?orders?\b/i,
-
-        /\bdisplay\s+(my\s+)?orders?\b/i,
-
-        /\bcheck\s+(my\s+)?orders?\b/i,
-
-        /\bmy\s+orders?\b/i,
-
-        /\border\s+history\b/i,
-
-        /\bshow\s+order\s+history\b/i,
-
-        /\bview\s+order\s+history\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isRemoveFromCartRequest(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-
-    const patterns = [
-
-        /\bremove\b.*\bfrom\s+(my\s+)?cart\b/i,
-
-        /\bremove\b.*\bfrom\s+(my\s+)?basket\b/i,
-
-        /\bdelete\b.*\bfrom\s+(my\s+)?cart\b/i,
-
-        /\bdelete\b.*\bfrom\s+(my\s+)?basket\b/i,
-
-        /\btake\b.*\bout\s+of\s+(my\s+)?cart\b/i,
-
-        /\bi\s+don't\s+want\b/i,
-
-        /\bi\s+do\s+not\s+want\b/i
-
-    ];
-
-
-    return patterns.some(
-        pattern =>
-            pattern.test(text)
-    );
-
-}
-
-
-function isSpecificProductQuestion(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase();
-
-
-    const detailWords = [
-
-        "price",
-        "cost",
-        "how much",
-
-        "stock",
-        "available",
-        "availability",
-        "in stock",
-        "how many",
-
-        "description",
-        "describe",
-
-        "tell me about",
-        "details",
-        "detail",
-        "information",
-        "info",
-
-        "what category",
-        "what subcategory"
-
-    ];
-
-
-    return detailWords.some(
-        word =>
-            text.includes(word)
-    );
-
-}
-
-
-function detectDetailType(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase();
-
-
-    const asksPrice =
-        text.includes("price") ||
-        text.includes("cost") ||
-        text.includes("how much");
-
-
-    const asksStock =
-        text.includes("stock") ||
-        text.includes("available") ||
-        text.includes("availability") ||
-        text.includes("how many") ||
-        text.includes("in stock");
-
-
-    const asksDescription =
-        text.includes("description") ||
-        text.includes("describe");
-
-
-    const asksCategory =
-        text.includes("what category");
-
-
-    const asksSubcategory =
-        text.includes("what subcategory");
-
-
-    if (
-        asksPrice &&
-        asksStock
-    ) {
-
-        return "price_stock";
-
-    }
-
-
-    if (asksPrice) {
-
-        return "price";
-
-    }
-
-
-    if (asksStock) {
-
-        return "stock";
-
-    }
-
-
-    if (asksDescription) {
-
-        return "description";
-
-    }
-
-
-    if (asksCategory) {
-
-        return "category";
-
-    }
-
-
-    if (asksSubcategory) {
-
-        return "subcategory";
-
-    }
-
-
-    return "full";
-
 }
 
 
