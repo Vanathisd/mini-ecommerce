@@ -30,10 +30,6 @@ function activeProductFilter() {
 }
 
 
-// ======================================================
-// SEARCH PRODUCTS
-// ======================================================
-
 async function searchProducts({
     category = null,
     subcategory = null,
@@ -59,10 +55,6 @@ async function searchProducts({
         };
 
 
-        // ==================================================
-        // CATEGORY
-        // ==================================================
-
         if (
             category !== null &&
             category !== undefined &&
@@ -82,9 +74,6 @@ async function searchProducts({
         }
 
 
-        // ==================================================
-        // SUBCATEGORY
-        // ==================================================
 
         if (
             subcategory !== null &&
@@ -105,10 +94,6 @@ async function searchProducts({
         }
 
 
-        // ==================================================
-        // NEW ARRIVALS
-        // ==================================================
-
         if (isNewArrival === true) {
 
             query.$and.push({
@@ -117,10 +102,6 @@ async function searchProducts({
 
         }
 
-
-        // ==================================================
-        // PRICE
-        // ==================================================
 
         if (
             minPrice !== null &&
@@ -152,9 +133,6 @@ async function searchProducts({
         }
 
 
-        // ==================================================
-        // SEARCH
-        // ==================================================
 
         if (
             search !== null &&
@@ -193,10 +171,6 @@ async function searchProducts({
             JSON.stringify(query, null, 2)
         );
 
-
-        // ==================================================
-// SORTING
-// ==================================================
 
 let sortQuery = {
     createdAt: -1,
@@ -277,9 +251,6 @@ const products =
 }
 
 
-// ======================================================
-// GET SPECIFIC PRODUCT DETAILS
-// ======================================================
 
 async function getProductDetails(productName) {
 
@@ -305,9 +276,6 @@ async function getProductDetails(productName) {
         );
 
 
-        // ==================================================
-        // EXACT MATCH
-        // ==================================================
 
         let product =
             await Product.findOne({
@@ -338,10 +306,6 @@ async function getProductDetails(productName) {
 
         }
 
-
-        // ==================================================
-        // WORD MATCH
-        // ==================================================
 
         const words =
             normalizeText(cleanName)
@@ -417,10 +381,6 @@ async function getProductDetails(productName) {
 }
 
 
-// ======================================================
-// LEVENSHTEIN DISTANCE
-// Used for small spelling mistakes
-// ======================================================
 
 function levenshtein(a, b) {
 
@@ -470,10 +430,6 @@ function levenshtein(a, b) {
 }
 
 
-// ======================================================
-// CHECK SIMILAR WORD
-// ======================================================
-
 function isSimilarWord(input, databaseWord) {
 
     const a =
@@ -493,7 +449,6 @@ function isSimilarWord(input, databaseWord) {
     }
 
 
-    // Very short words should not be fuzzy matched
     if (a.length <= 3 || b.length <= 3) {
         return false;
     }
@@ -503,21 +458,15 @@ function isSimilarWord(input, databaseWord) {
         levenshtein(a, b);
 
 
-    // Allow 1 typo for normal words
     if (Math.max(a.length, b.length) <= 8) {
         return distance <= 1;
     }
 
 
-    // Allow up to 2 typos for longer words
     return distance <= 2;
 
 }
 
-
-// ======================================================
-// FIND PRODUCT USING FUZZY WORD MATCH
-// ======================================================
 
 async function findFuzzyProduct(productText) {
 
@@ -611,9 +560,6 @@ async function findFuzzyProduct(productText) {
 }
 
 
-// ======================================================
-// FIND PRODUCT FROM MESSAGE
-// ======================================================
 
 async function findProductFromMessage(message) {
 
@@ -645,14 +591,11 @@ async function findProductFromMessage(message) {
             cleanMessage;
 
 
-        // ==================================================
-        // REMOVE QUESTION PHRASES
-        // ==================================================
 
         productText =
             productText
 
-                // Price
+                
                 .replace(
                     /\bwhat\s+is\s+the\s+price\s+of\b/gi,
                     " "
@@ -693,7 +636,7 @@ async function findProductFromMessage(message) {
                     " ")
 
 
-                // Availability
+            
                 .replace(
                     /\bis\s+available\b/gi,
                     " "
@@ -785,9 +728,6 @@ async function findProductFromMessage(message) {
                     " ");
 
 
-        // ==================================================
-        // REMOVE PUNCTUATION
-        // ==================================================
 
         productText =
             productText
@@ -807,9 +747,6 @@ async function findProductFromMessage(message) {
         }
 
 
-        // ==================================================
-        // EXACT PRODUCT NAME
-        // ==================================================
 
         let product =
             await Product.findOne({
@@ -841,9 +778,6 @@ async function findProductFromMessage(message) {
         }
 
 
-        // ==================================================
-        // WORD MATCH
-        // ==================================================
 
         const words =
             normalizeText(productText)
@@ -899,15 +833,6 @@ async function findProductFromMessage(message) {
         }
 
 
-        // ==================================================
-        // FUZZY MATCH
-        // Handles:
-        //
-        // avaitor -> aviator
-        // sunglasess -> sunglasses
-        // shrit -> shirt
-        // ==================================================
-
         product =
             await findFuzzyProduct(
                 productText
@@ -941,13 +866,35 @@ async function findProductFromMessage(message) {
 
 }
 
+async function findProductsFromCartMessage(message) {
+    const parts = String(message || "")
+        .split(/\s*(?:,|\band\b)\s*/i)
+        .map(part => part.trim())
+        .filter(Boolean);
+
+    console.log("CART PRODUCT PARTS:", parts);
+
+    const products = [];
+
+    for (const part of parts) {
+        const product = await findProductFromMessage(part);
+
+        if (product) {
+            console.log("CART PRODUCT FOUND:", product.name);
+            products.push(product);
+        } else {
+            console.log("CART PRODUCT NOT FOUND:", part);
+        }
+    }
+
+    return products;
+}
 
 module.exports = {
 
     searchProducts,
-
     getProductDetails,
-
-    findProductFromMessage
+    findProductFromMessage,
+    findProductsFromCartMessage
 
 };
