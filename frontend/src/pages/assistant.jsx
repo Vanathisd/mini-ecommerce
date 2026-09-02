@@ -205,7 +205,7 @@ function Assistant() {
 
 
             const response = await fetch(
-                "http://192.168.0.23:5000/ai/chat",
+                "http://localhost:5000/ai/chat",
                 {
                     method: "POST",
 
@@ -334,7 +334,7 @@ function Assistant() {
 
                     const orderResponse =
                         await fetch(
-                            "http://192.168.0.23:5000/orders/myorders",
+                            "http://localhost:5000/orders/myorders",
                             {
                                 method: "GET",
 
