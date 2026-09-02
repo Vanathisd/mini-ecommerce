@@ -8,7 +8,7 @@ const {
 } = require("./producttools");
 
 const ollama = new Ollama({
-    host: process.env.OLLAMA_HOST || "http://127.0.0.1:11434"
+    host: "http://127.0.0.1:11434"
 });
 
 
@@ -68,6 +68,13 @@ async function askShoppingAgent(message) {
             };
         }
 
+        if (isShowOrdersRequest(cleanMessage)) {
+
+            return {
+                response: "Fetching your orders...",
+                action: "show_orders"
+            };
+        }
 
         const decreaseCartRequest =
             isDecreaseCartRequest(cleanMessage);
@@ -727,6 +734,14 @@ function isCheckoutRequest(message) {
     );
 }
 
+function isShowOrdersRequest(message) {
+
+    return (
+        /\b(show|view|see|display|check)\b.*\b(my\s+)?orders?\b/i.test(message) ||
+        /\bmy\s+orders?\b/i.test(message) ||
+        /\border\s+history\b/i.test(message)
+    );
+}
 
 function isIncreaseCartRequest(message) {
 
