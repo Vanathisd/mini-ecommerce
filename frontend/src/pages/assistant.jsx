@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -426,7 +427,7 @@ function Assistant() {
             const data =
                 await response.json();
 
-            
+
             console.log(
                 "AI response:",
                 data
