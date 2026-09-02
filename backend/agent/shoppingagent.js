@@ -898,7 +898,7 @@ Do not invent products.
                     Number.isFinite(stock) &&
                     stock > 0
                         ? `In stock (${stock})`
-                        : "Out of stock`;
+                        : "Out of stock";
 
 
                 return {
