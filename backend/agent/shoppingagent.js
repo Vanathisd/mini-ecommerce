@@ -453,6 +453,137 @@ Do not invent products.`
                 "ADD TO CART REQUEST DETECTED"
             );
 
+
+            // ==========================================
+            // MULTIPLE PRODUCTS ADD TO CART
+            // ==========================================
+
+            const multipleProductNames =
+                extractMultipleProductNamesFromCartMessage(
+                    cleanMessage
+                );
+
+            if (
+                multipleProductNames.length > 1
+            ) {
+
+                console.log(
+                    "MULTIPLE PRODUCTS TO ADD:",
+                    multipleProductNames
+                );
+
+                const productsToAdd = [];
+
+                for (
+                    const productName
+                    of multipleProductNames
+                ) {
+
+                    const detectedProduct =
+                        await findProductFromMessage(
+                            productName
+                        );
+
+                    if (
+                        detectedProduct
+                    ) {
+
+                        const latestProduct =
+                            await getProductDetails(
+                                detectedProduct.name
+                            );
+
+                        if (
+                            latestProduct
+                        ) {
+
+                            const stock =
+                                Number(
+                                    latestProduct.stock
+                                );
+
+                            if (
+                                Number.isFinite(stock) &&
+                                stock > 0
+                            ) {
+
+                                productsToAdd.push(
+                                    latestProduct
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+
+                if (
+                    productsToAdd.length === 0
+                ) {
+
+                    return {
+
+                        response:
+                            "Sorry, I couldn't find those products in VELORA.",
+
+                        action:
+                            "none"
+
+                    };
+
+                }
+
+
+                const productNames =
+                    productsToAdd.map(
+                        product =>
+                            product.name
+                    );
+
+
+                let response;
+
+                if (
+                    productNames.length === 2
+                ) {
+
+                    response =
+                        `${productNames[0]} and ${productNames[1]} have been added to your cart.`;
+
+                }
+
+                else {
+
+                    response =
+                        `${productNames
+                            .slice(0, -1)
+                            .join(", ")} and ${productNames.at(-1)} have been added to your cart.`;
+
+                }
+
+
+                return {
+
+                    response,
+
+                    action:
+                        "add_multiple_to_cart",
+
+                    products:
+                        productsToAdd
+
+                };
+
+            }
+
+
+            // ==========================================
+            // ORIGINAL SINGLE PRODUCT ADD
+            // ==========================================
+
             const quantity =
                 extractAddQuantity(
                     cleanMessage
@@ -610,6 +741,125 @@ Do not invent products.`
         );
 
         if (removeFromCartRequest) {
+
+
+            // ==========================================
+            // MULTIPLE PRODUCTS REMOVE FROM CART
+            // ==========================================
+
+            const multipleProductNames =
+                extractMultipleProductNamesFromRemoveMessage(
+                    cleanMessage
+                );
+
+            if (
+                multipleProductNames.length > 1
+            ) {
+
+                console.log(
+                    "MULTIPLE PRODUCTS TO REMOVE:",
+                    multipleProductNames
+                );
+
+                const productsToRemove = [];
+
+                for (
+                    const productName
+                    of multipleProductNames
+                ) {
+
+                    const detectedProduct =
+                        await findProductFromMessage(
+                            productName
+                        );
+
+                    if (
+                        detectedProduct
+                    ) {
+
+                        const latestProduct =
+                            await getProductDetails(
+                                detectedProduct.name
+                            );
+
+                        if (
+                            latestProduct
+                        ) {
+
+                            productsToRemove.push(
+                                latestProduct
+                            );
+
+                        }
+
+                    }
+
+                }
+
+
+                if (
+                    productsToRemove.length === 0
+                ) {
+
+                    return {
+
+                        response:
+                            "Sorry, I couldn't find those products in VELORA.",
+
+                        action:
+                            "none"
+
+                    };
+
+                }
+
+
+                const productNames =
+                    productsToRemove.map(
+                        product =>
+                            product.name
+                    );
+
+
+                let response;
+
+                if (
+                    productNames.length === 2
+                ) {
+
+                    response =
+                        `${productNames[0]} and ${productNames[1]} have been removed from your cart.`;
+
+                }
+
+                else {
+
+                    response =
+                        `${productNames
+                            .slice(0, -1)
+                            .join(", ")} and ${productNames.at(-1)} have been removed from your cart.`;
+
+                }
+
+
+                return {
+
+                    response,
+
+                    action:
+                        "remove_multiple_from_cart",
+
+                    products:
+                        productsToRemove
+
+                };
+
+            }
+
+
+            // ==========================================
+            // ORIGINAL SINGLE PRODUCT REMOVE
+            // ==========================================
 
             const productSearchText =
                 extractProductNameFromRemoveMessage(
@@ -1318,6 +1568,38 @@ JSON FORMAT:
 
 
         // ==========================================
+        // FIX CHEAPEST SUNGLASSES
+        // ==========================================
+
+        if (
+            /\b(cheapest|lowest price|least expensive|low price)\b/i.test(
+                lowerMessage
+            ) &&
+            /\b(sunglasses|sunglass)\b/i.test(
+                lowerMessage
+            )
+        ) {
+
+            console.log(
+                "CHEAPEST SUNGLASSES REQUEST DETECTED"
+            );
+
+            intent.category =
+                "Accessories";
+
+            intent.subcategory =
+                "Sunglasses";
+
+            intent.sortBy =
+                "price_asc";
+
+            intent.showAll =
+                false;
+
+        }
+
+
+        // ==========================================
         // RECOMMENDATION
         // ==========================================
 
@@ -1782,6 +2064,60 @@ function extractProductNameFromCartMessage(
 
 
 // ==========================================
+// NEW - EXTRACT MULTIPLE PRODUCT NAMES
+// ==========================================
+
+function extractMultipleProductNamesFromCartMessage(
+    message
+) {
+
+    let text =
+        String(message || "")
+            .trim();
+
+
+    text =
+        text.replace(
+            /^(please\s+)?(add|put|place)\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(to|in)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^(please\s+)?buy\s+/i,
+            ""
+        );
+
+
+    const parts =
+        text
+            .split(
+                /\s*(?:,|\band\b)\s*/i
+            )
+            .map(
+                item =>
+                    item.trim()
+            )
+            .filter(
+                item =>
+                    item.length > 0
+            );
+
+
+    return parts;
+
+}
+
+
+// ==========================================
 // EXTRACT PRODUCT NAME FROM REMOVE MESSAGE
 // ==========================================
 
@@ -1823,6 +2159,67 @@ function extractProductNameFromRemoveMessage(
 
 
     return text.trim();
+
+}
+
+
+// ==========================================
+// NEW - EXTRACT MULTIPLE PRODUCT NAMES REMOVE
+// ==========================================
+
+function extractMultipleProductNamesFromRemoveMessage(
+    message
+) {
+
+    let text =
+        String(message || "")
+            .trim();
+
+
+    text =
+        text.replace(
+            /^(please\s+)?(remove|delete|take)\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /\s+(from|out\s+of)\s+(my\s+)?(shopping\s+)?(cart|basket)\s*$/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^i\s+don't\s+want\s+/i,
+            ""
+        );
+
+
+    text =
+        text.replace(
+            /^i\s+do\s+not\s+want\s+/i,
+            ""
+        );
+
+
+    const parts =
+        text
+            .split(
+                /\s*(?:,|\band\b)\s*/i
+            )
+            .map(
+                item =>
+                    item.trim()
+            )
+            .filter(
+                item =>
+                    item.length > 0
+            );
+
+
+    return parts;
 
 }
 
