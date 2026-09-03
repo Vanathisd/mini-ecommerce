@@ -7,7 +7,7 @@ const {
 } = require("./producttools");
 
 const ollama = new Ollama({
-    host: process.env.OLLAMA_HOST || "http://127.0.0.1:11434"
+    host:  "http://127.0.0.1:11434"
 });
 
 async function askShoppingAgent(message) {
@@ -109,10 +109,6 @@ Do not invent products.`
         );
 
 
-        // ==========================================
-        // CLEAR CART
-        // ==========================================
-
         const clearCartRequest =
             isClearCartRequest(
                 cleanMessage
@@ -137,10 +133,6 @@ Do not invent products.`
 
         }
 
-
-        // ==========================================
-        // CHECKOUT
-        // ==========================================
 
         const checkoutRequest =
             isCheckoutRequest(
@@ -171,9 +163,6 @@ Do not invent products.`
         }
 
 
-        // ==========================================
-        // DECREASE QUANTITY
-        // ==========================================
 
         const decreaseCartRequest =
             isDecreaseCartRequest(
@@ -290,10 +279,6 @@ Do not invent products.`
 
         }
 
-
-        // ==========================================
-        // INCREASE QUANTITY
-        // ==========================================
 
         const increaseCartRequest =
             isIncreaseCartRequest(
@@ -433,10 +418,6 @@ Do not invent products.`
         }
 
 
-        // ==========================================
-        // ADD TO CART
-        // ==========================================
-
         const addToCartRequest =
             isAddToCartRequest(
                 cleanMessage
@@ -453,10 +434,6 @@ Do not invent products.`
                 "ADD TO CART REQUEST DETECTED"
             );
 
-
-            // ==========================================
-            // MULTIPLE PRODUCTS ADD TO CART
-            // ==========================================
 
             const multipleProductNames =
                 extractMultipleProductNamesFromCartMessage(
@@ -579,10 +556,6 @@ Do not invent products.`
 
             }
 
-
-            // ==========================================
-            // ORIGINAL SINGLE PRODUCT ADD
-            // ==========================================
 
             const quantity =
                 extractAddQuantity(
@@ -726,10 +699,6 @@ Do not invent products.`
         }
 
 
-        // ==========================================
-        // REMOVE FROM CART
-        // ==========================================
-
         const removeFromCartRequest =
             isRemoveFromCartRequest(
                 cleanMessage
@@ -743,9 +712,6 @@ Do not invent products.`
         if (removeFromCartRequest) {
 
 
-            // ==========================================
-            // MULTIPLE PRODUCTS REMOVE FROM CART
-            // ==========================================
 
             const multipleProductNames =
                 extractMultipleProductNamesFromRemoveMessage(
@@ -857,10 +823,6 @@ Do not invent products.`
             }
 
 
-            // ==========================================
-            // ORIGINAL SINGLE PRODUCT REMOVE
-            // ==========================================
-
             const productSearchText =
                 extractProductNameFromRemoveMessage(
                     cleanMessage
@@ -936,10 +898,6 @@ Do not invent products.`
         }
 
 
-        // ==========================================
-        // SPECIFIC PRODUCT
-        // ==========================================
-
         const detectedProduct =
             await findProductFromMessage(
                 cleanMessage
@@ -987,7 +945,7 @@ Do not invent products.`
                 );
 
 
-            // PRICE + STOCK
+           
 
             if (
                 detailType ===
@@ -1018,7 +976,7 @@ Do not invent products.`
             }
 
 
-            // PRICE
+           
 
             if (
                 detailType ===
@@ -1038,7 +996,7 @@ Do not invent products.`
             }
 
 
-            // STOCK
+     
 
             if (
                 detailType ===
@@ -1080,7 +1038,6 @@ Do not invent products.`
             }
 
 
-            // DESCRIPTION
 
             if (
                 detailType ===
@@ -1102,7 +1059,6 @@ Do not invent products.`
             }
 
 
-            // CATEGORY
 
             if (
                 detailType ===
@@ -1122,8 +1078,6 @@ Do not invent products.`
             }
 
 
-            // SUBCATEGORY
-
             if (
                 detailType ===
                 "subcategory"
@@ -1142,7 +1096,6 @@ Do not invent products.`
             }
 
 
-            // FULL DETAILS
 
             const stock =
                 Number(
@@ -1193,9 +1146,6 @@ Do not invent products.`
         }
 
 
-        // ==========================================
-        // OLLAMA SEARCH INTENT
-        // ==========================================
 
         const aiResponse =
             await ollama.chat({
@@ -1296,6 +1246,8 @@ top rated -> rating_desc
 
 RECOMMENDATIONS:
 
+For normal category/product searches:
+
 some
 few
 suggest
@@ -1304,6 +1256,19 @@ recommend
 set:
 
 showAll = false
+
+IMPORTANT:
+
+If the customer asks for new arrivals, always set:
+
+"isNewArrival": true
+
+New Arrivals is a complete collection.
+Even if the customer says "suggest me new arrivals"
+or "recommend new arrivals", show ALL available
+new-arrival products.
+
+Do NOT set showAll=false for new arrivals.
 
 For normal category searches:
 
@@ -1384,9 +1349,6 @@ JSON FORMAT:
         }
 
 
-        // ==========================================
-        // MANUAL CATEGORY MAPPING
-        // ==========================================
 
         if (
             /\bdresses?\b/i.test(
@@ -1529,29 +1491,24 @@ JSON FORMAT:
         }
 
 
-        // ==========================================
-        // SORTING
-        // ==========================================
 
         if (
-            /\b(cheapest|lowest price|least expensive|low price)\b/i.test(
-                lowerMessage
-            )
-        ) {
-
-            intent.sortBy =
-                "price_asc";
-
-        }
-
-        else if (
             /\b(most expensive|highest price|costliest|most costly|expensive)\b/i.test(
                 lowerMessage
             )
         ) {
 
-            intent.sortBy =
-                "price_desc";
+            intent.sortBy = "price_desc";
+
+        }
+
+        else if (
+            /\b(cheapest|lowest price|least expensive|low price)\b/i.test(
+                lowerMessage
+            )
+        ) {
+
+            intent.sortBy = "price_asc";
 
         }
 
@@ -1561,15 +1518,11 @@ JSON FORMAT:
             )
         ) {
 
-            intent.sortBy =
-                "rating_desc";
+            intent.sortBy = "rating_desc";
 
         }
 
 
-        // ==========================================
-        // FIX CHEAPEST SUNGLASSES
-        // ==========================================
 
         if (
             /\b(cheapest|lowest price|least expensive|low price)\b/i.test(
@@ -1598,10 +1551,6 @@ JSON FORMAT:
 
         }
 
-
-        // ==========================================
-        // RECOMMENDATION
-        // ==========================================
 
         const recommendationWords = [
             "suggest",
@@ -1633,12 +1582,21 @@ JSON FORMAT:
             );
 
 
-        if (
+       if (
             intent.sortBy
         ) {
 
             intent.showAll =
                 false;
+
+        }
+
+        else if (
+            intent.isNewArrival === true
+        ) {
+
+            intent.showAll =
+                true;
 
         }
 
@@ -1653,10 +1611,17 @@ JSON FORMAT:
 
         }
 
+        else if (
+            intent.category ||
+            intent.subcategory
+        ) {
 
-        // ==========================================
-        // SEARCH PRODUCTS
-        // ==========================================
+            intent.showAll =
+                !isRecommendation &&
+                !hasSmallNumber;
+
+        }
+
 
         const products =
             await searchProducts({
@@ -1738,9 +1703,6 @@ JSON FORMAT:
         }
 
 
-        // ==========================================
-        // RESPONSE
-        // ==========================================
 
         let responseText =
             "Here are some matching products available at VELORA:\n\n";
@@ -1806,9 +1768,6 @@ JSON FORMAT:
 }
 
 
-// ==========================================
-// EXTRACT ADD QUANTITY
-// ==========================================
 
 function extractAddQuantity(
     message
@@ -1819,7 +1778,6 @@ function extractAddQuantity(
             .toLowerCase();
 
 
-    // add one more
 
     if (
         /\badd\s+one\s+more\b/i.test(
@@ -1832,7 +1790,6 @@ function extractAddQuantity(
     }
 
 
-    // add another
 
     if (
         /\badd\s+another\b/i.test(
@@ -1845,7 +1802,7 @@ function extractAddQuantity(
     }
 
 
-    // add 3
+  
 
     const numberMatch =
         text.match(
@@ -1881,10 +1838,6 @@ function extractAddQuantity(
 }
 
 
-// ==========================================
-// EXTRACT QUANTITY
-// ==========================================
-
 function extractQuantity(
     message,
     type
@@ -1895,8 +1848,6 @@ function extractQuantity(
             .toLowerCase();
 
 
-    // increase by 3
-    // decrease by 3
 
     const byMatch =
         text.match(
@@ -1930,8 +1881,6 @@ function extractQuantity(
     }
 
 
-    // increase 3
-    // decrease 3
 
     const directMatch =
         text.match(
@@ -1965,7 +1914,6 @@ function extractQuantity(
     }
 
 
-    // add one more / one less
 
     if (
         /\bone\s+more\b/i.test(
@@ -1994,9 +1942,6 @@ function extractQuantity(
 }
 
 
-// ==========================================
-// EXTRACT PRODUCT NAME FROM CART MESSAGE
-// ==========================================
 
 function extractProductNameFromCartMessage(
     message
@@ -2063,10 +2008,6 @@ function extractProductNameFromCartMessage(
 }
 
 
-// ==========================================
-// NEW - EXTRACT MULTIPLE PRODUCT NAMES
-// ==========================================
-
 function extractMultipleProductNamesFromCartMessage(
     message
 ) {
@@ -2117,10 +2058,6 @@ function extractMultipleProductNamesFromCartMessage(
 }
 
 
-// ==========================================
-// EXTRACT PRODUCT NAME FROM REMOVE MESSAGE
-// ==========================================
-
 function extractProductNameFromRemoveMessage(
     message
 ) {
@@ -2163,9 +2100,6 @@ function extractProductNameFromRemoveMessage(
 }
 
 
-// ==========================================
-// NEW - EXTRACT MULTIPLE PRODUCT NAMES REMOVE
-// ==========================================
 
 function extractMultipleProductNamesFromRemoveMessage(
     message
@@ -2223,10 +2157,6 @@ function extractMultipleProductNamesFromRemoveMessage(
 
 }
 
-
-// ==========================================
-// EXTRACT PRODUCT NAME FROM QUANTITY MESSAGE
-// ==========================================
 
 function extractProductNameFromQuantityMessage(
     message
@@ -2298,10 +2228,6 @@ function extractProductNameFromQuantityMessage(
 }
 
 
-// ==========================================
-// IS ADD TO CART REQUEST
-// ==========================================
-
 function isAddToCartRequest(
     message
 ) {
@@ -2347,9 +2273,6 @@ function isAddToCartRequest(
 }
 
 
-// ==========================================
-// IS INCREASE CART REQUEST
-// ==========================================
 
 function isIncreaseCartRequest(
     message
@@ -2386,9 +2309,6 @@ function isIncreaseCartRequest(
 }
 
 
-// ==========================================
-// IS DECREASE CART REQUEST
-// ==========================================
 
 function isDecreaseCartRequest(
     message
@@ -2425,9 +2345,6 @@ function isDecreaseCartRequest(
 }
 
 
-// ==========================================
-// IS CLEAR CART REQUEST
-// ==========================================
 
 function isClearCartRequest(
     message
@@ -2476,10 +2393,6 @@ function isClearCartRequest(
 }
 
 
-// ==========================================
-// IS CHECKOUT REQUEST
-// ==========================================
-
 function isCheckoutRequest(
     message
 ) {
@@ -2521,10 +2434,6 @@ function isCheckoutRequest(
 }
 
 
-// ==========================================
-// IS REMOVE FROM CART REQUEST
-// ==========================================
-
 function isRemoveFromCartRequest(
     message
 ) {
@@ -2562,9 +2471,6 @@ function isRemoveFromCartRequest(
 }
 
 
-// ==========================================
-// IS SPECIFIC PRODUCT QUESTION
-// ==========================================
 
 function isSpecificProductQuestion(
     message
@@ -2609,10 +2515,6 @@ function isSpecificProductQuestion(
 
 }
 
-
-// ==========================================
-// DETECT DETAIL TYPE
-// ==========================================
 
 function detectDetailType(
     message
