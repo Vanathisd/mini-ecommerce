@@ -1,4 +1,4 @@
-.chatbot-button {
+.assistant-button {
     position: fixed;
     right: 25px;
     bottom: 25px;
@@ -13,7 +13,7 @@
     z-index: 9999;
 }
 
-.chatbot-container {
+.assistant-container {
     position: fixed;
     right: 25px;
     bottom: 25px;
@@ -28,7 +28,7 @@
     z-index: 9999;
 }
 
-.chatbot-header {
+.assistant-header {
     background: #222;
     color: white;
     padding: 15px;
@@ -37,32 +37,34 @@
     align-items: center;
 }
 
-.chatbot-header h3 {
-    margin: 0;
-    font-size: 17px;
+.assistant-header > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.chatbot-header span {
-    font-size: 12px;
-    opacity: 0.8;
+.assistant-header-actions {
+    display: flex;
+    gap: 8px;
 }
 
-.chatbot-close {
+.assistant-header-actions button {
     background: none;
     border: none;
     color: white;
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
 }
 
-.chatbot-messages {
+.assistant-messages {
     flex: 1;
     padding: 15px;
     overflow-y: auto;
     background: #fafafa;
 }
 
-.chat-message {
+.user-message,
+.bot-message {
     max-width: 80%;
     padding: 10px 12px;
     margin-bottom: 10px;
@@ -72,28 +74,28 @@
     white-space: pre-wrap;
 }
 
-.chat-message.user {
+.user-message {
     margin-left: auto;
     background: #222;
     color: white;
     border-bottom-right-radius: 2px;
 }
 
-.chat-message.bot {
+.bot-message {
     margin-right: auto;
     background: #eeeeee;
     color: #222;
     border-bottom-left-radius: 2px;
 }
 
-.chatbot-input {
+.assistant-input {
     display: flex;
     padding: 10px;
     border-top: 1px solid #ddd;
     background: white;
 }
 
-.chatbot-input input {
+.assistant-input input {
     flex: 1;
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -101,7 +103,7 @@
     outline: none;
 }
 
-.chatbot-input button {
+.assistant-input button {
     width: 42px;
     margin-left: 8px;
     border: none;
@@ -111,7 +113,7 @@
     cursor: pointer;
 }
 
-.chatbot-input button:disabled {
+.assistant-input button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

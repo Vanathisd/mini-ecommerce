@@ -10,6 +10,7 @@ import {
 
 import { useAuth } from "../context/authContext";
 import { useCart } from "../context/CartContext";
+import "../styles/assistant.css";
 
 function Assistant() {
 
