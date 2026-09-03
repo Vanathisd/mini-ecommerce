@@ -115,7 +115,7 @@ export function CartProvider({ children }) {
 
         setCartLoaded(true);
 
-    }, [user]);
+    }, [user?.id]);
 
 
     useEffect(() => {
@@ -136,7 +136,7 @@ export function CartProvider({ children }) {
 
     }, [
         cart,
-        user,
+        user?.id,
         cartLoaded
     ]);
 

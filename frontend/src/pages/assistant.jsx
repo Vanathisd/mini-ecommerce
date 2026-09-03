@@ -96,15 +96,16 @@ function Assistant() {
     }, [messages, chatKey]);
 
 
-    function isShowCartRequest(text) {
+   function isShowCartRequest(text) {
 
-        return (
-            /\b(show|view|see|display|check)\b.*\bcart\b/i.test(text) ||
-            /\bmy\s+cart\b/i.test(text) ||
-            /\bcart\b/i.test(text)
-        );
+    return (
+        /\b(show|view|see|display|check)\b.*\bcart\b/i.test(text) ||
+        /\b(show|view|see|display|check)\s+my\s+cart\b/i.test(text) ||
+        /\bwhat(?:'s| is)\s+(?:in\s+)?my\s+cart\b/i.test(text) ||
+        /\bwhat(?:'s| is)\s+in\s+the\s+cart\b/i.test(text)
+    );
 
-    }
+}
 
 
     function showCart() {
