@@ -290,7 +290,6 @@ function Assistant() {
 
             if (data.action === "show_orders") {
 
-                // User must be logged in
                 if (!user) {
 
                     setMessages(prev => [
@@ -357,7 +356,7 @@ function Assistant() {
 
                         throw new Error(
                             orderData.message ||
-                            "Failed to fetch orders"
+                            "Failed to fetch order"
                         );
 
                     }
@@ -384,7 +383,7 @@ function Assistant() {
                     }
 
                     let ordersText =
-                        "📦 Here are your orders:\n\n";
+                        "📦 Here is your orders\n\n";
 
 
                     orders.forEach(
