@@ -499,16 +499,16 @@ function Assistant() {
 
           if (data.action === "add_multiple_to_cart") {
 
+    console.log(
+        "🟢 MULTIPLE ADD ACTION:",
+        data
+    );
+
+
     if (
         Array.isArray(data.products) &&
         data.products.length > 0
     ) {
-
-        console.log(
-            "ADDING MULTIPLE PRODUCTS:",
-            data.products
-        );
-
 
         addMultipleToCart(
             data.products
@@ -546,7 +546,6 @@ function Assistant() {
 
     return;
 }
-
             if (
                 data.action ===
                 "increase_quantity"
@@ -677,13 +676,10 @@ function Assistant() {
                 return;
             }
 
-            if (
-    data.action ===
-    "remove_multiple_from_cart"
-) {
+            if (data.action === "remove_multiple_from_cart") {
 
     console.log(
-        "🗑️ REMOVE MULTIPLE ACTION RECEIVED:",
+        "🔴 MULTIPLE REMOVE ACTION:",
         data
     );
 
@@ -692,12 +688,6 @@ function Assistant() {
         Array.isArray(data.products) &&
         data.products.length > 0
     ) {
-
-        console.log(
-            "🗑️ PRODUCTS BEING SENT TO CART:",
-            data.products
-        );
-
 
         removeMultipleFromCart(
             data.products

@@ -28,21 +28,18 @@ export function CartProvider({ children }) {
             return null;
         }
 
-        const id =
+        return String(
             product._id ||
             product.id ||
-            product.productId;
+            product.productId ||
+            ""
+        );
 
-        if (!id) {
-            return null;
-        }
-
-        return String(id);
     };
 
 
     // ==========================================
-    // CART STORAGE KEY
+    // GET CART KEY
     // ==========================================
 
     const getCartKey = () => {
@@ -52,6 +49,7 @@ export function CartProvider({ children }) {
         }
 
         return "guest_cart";
+
     };
 
 
@@ -67,6 +65,12 @@ export function CartProvider({ children }) {
 
         const savedCart =
             localStorage.getItem(cartKey);
+
+        console.log(
+            "📦 LOADING CART:",
+            cartKey,
+            savedCart
+        );
 
         if (savedCart) {
 
@@ -125,7 +129,7 @@ export function CartProvider({ children }) {
         );
 
         console.log(
-            "💾 CART SAVED:",
+            "💾 SAVED CART:",
             cart
         );
 
@@ -155,7 +159,7 @@ export function CartProvider({ children }) {
         if (!productId) {
 
             console.error(
-                "Product ID missing:",
+                "❌ PRODUCT ID MISSING:",
                 product
             );
 
@@ -174,41 +178,45 @@ export function CartProvider({ children }) {
 
         setCart(currentCart => {
 
-            const existingProduct =
-                currentCart.find(
+            const existingIndex =
+                currentCart.findIndex(
                     item =>
                         getProductId(item) ===
                         productId
                 );
 
 
-            if (existingProduct) {
+            // Product already exists
+            if (existingIndex !== -1) {
 
-                return currentCart.map(item => {
+                return currentCart.map(
+                    (item, index) => {
 
-                    if (
-                        getProductId(item) ===
-                        productId
-                    ) {
+                        if (
+                            index ===
+                            existingIndex
+                        ) {
 
-                        return {
-                            ...item,
-                            quantity:
-                                Number(
-                                    item.quantity || 0
-                                ) +
-                                validQuantity
-                        };
+                            return {
+                                ...item,
+                                quantity:
+                                    Number(
+                                        item.quantity || 0
+                                    ) +
+                                    validQuantity
+                            };
+
+                        }
+
+                        return item;
 
                     }
-
-                    return item;
-
-                });
+                );
 
             }
 
 
+            // New product
             return [
                 ...currentCart,
                 {
@@ -232,11 +240,18 @@ export function CartProvider({ children }) {
             !Array.isArray(products) ||
             products.length === 0
         ) {
+
+            console.error(
+                "❌ INVALID MULTIPLE PRODUCTS:",
+                products
+            );
+
             return;
         }
 
+
         console.log(
-            "🛒 ADD MULTIPLE:",
+            "🟢 ADD MULTIPLE START:",
             products
         );
 
@@ -253,14 +268,23 @@ export function CartProvider({ children }) {
                     return;
                 }
 
+
                 const productId =
                     getProductId(product);
+
+
+                console.log(
+                    "➕ PRODUCT:",
+                    product.name,
+                    "ID:",
+                    productId
+                );
 
 
                 if (!productId) {
 
                     console.error(
-                        "Product ID missing:",
+                        "❌ PRODUCT HAS NO ID:",
                         product
                     );
 
@@ -278,6 +302,7 @@ export function CartProvider({ children }) {
 
                 if (existingIndex !== -1) {
 
+                    // Already in cart
                     updatedCart =
                         updatedCart.map(
                             (item, index) => {
@@ -291,8 +316,7 @@ export function CartProvider({ children }) {
                                         ...item,
                                         quantity:
                                             Number(
-                                                item.quantity ||
-                                                0
+                                                item.quantity || 0
                                             ) + 1
                                     };
 
@@ -305,6 +329,7 @@ export function CartProvider({ children }) {
 
                 } else {
 
+                    // New product
                     updatedCart.push({
 
                         ...product,
@@ -319,28 +344,14 @@ export function CartProvider({ children }) {
 
 
             console.log(
-                "🛒 UPDATED AFTER MULTIPLE ADD:",
+                "🟢 CART AFTER MULTIPLE ADD:",
                 updatedCart
             );
+
 
             return updatedCart;
 
         });
-
-    };
-
-
-    // ==========================================
-    // CLEAR CART
-    // ==========================================
-
-    const clearCart = () => {
-
-        console.log(
-            "🗑️ CLEARING CART"
-        );
-
-        setCart([]);
 
     };
 
@@ -354,6 +365,7 @@ export function CartProvider({ children }) {
         if (!productId) {
             return;
         }
+
 
         const normalizedId =
             String(productId);
@@ -370,9 +382,10 @@ export function CartProvider({ children }) {
 
 
             console.log(
-                "🗑️ CART AFTER SINGLE REMOVE:",
+                "🔴 CART AFTER SINGLE REMOVE:",
                 updatedCart
             );
+
 
             return updatedCart;
 
@@ -392,52 +405,57 @@ export function CartProvider({ children }) {
             products.length === 0
         ) {
 
-            console.log(
-                "⚠️ No products received for multiple remove"
-            );
-
-            return;
-        }
-
-
-        console.log(
-            "🗑️ PRODUCTS RECEIVED FOR REMOVE:",
-            products
-        );
-
-
-        const productIds =
-            products
-                .map(product =>
-                    getProductId(product)
-                )
-                .filter(Boolean)
-                .map(id =>
-                    String(id)
-                );
-
-
-        console.log(
-            "🆔 IDS TO REMOVE:",
-            productIds
-        );
-
-
-        if (productIds.length === 0) {
-
             console.error(
-                "❌ No valid product IDs found:",
+                "❌ INVALID REMOVE PRODUCTS:",
                 products
             );
 
             return;
+
         }
+
+
+        console.log(
+            "🔴 REMOVE MULTIPLE START:",
+            products
+        );
+
+
+        const idsToRemove =
+            products
+                .map(product =>
+                    getProductId(product)
+                )
+                .filter(id => id);
+
+
+        const namesToRemove =
+            products
+                .map(product =>
+                    String(
+                        product?.name || ""
+                    )
+                        .trim()
+                        .toLowerCase()
+                )
+                .filter(name => name);
+
+
+        console.log(
+            "🆔 IDS TO REMOVE:",
+            idsToRemove
+        );
+
+        console.log(
+            "🏷️ NAMES TO REMOVE:",
+            namesToRemove
+        );
 
 
         setCart(currentCart => {
 
             console.log(
-                "🛒 CART BEFORE MULTIPLE REMOVE:",
+                "🛒 CART BEFORE REMOVE:",
                 currentCart
             );
 
@@ -448,14 +466,38 @@ export function CartProvider({ children }) {
                     const itemId =
                         getProductId(item);
 
-                    const shouldRemove =
-                        productIds.includes(
-                            String(itemId)
+                    const itemName =
+                        String(
+                            item?.name || ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+
+                    const removeById =
+                        idsToRemove.includes(
+                            itemId
                         );
 
 
+                    const removeByName =
+                        namesToRemove.includes(
+                            itemName
+                        );
+
+
+                    const shouldRemove =
+                        removeById ||
+                        removeByName;
+
+
                     console.log(
-                        `Product: ${item.name} | ID: ${itemId} | Remove: ${shouldRemove}`
+                        "CHECK:",
+                        item.name,
+                        "| ID:",
+                        itemId,
+                        "| remove:",
+                        shouldRemove
                     );
 
 
@@ -465,7 +507,7 @@ export function CartProvider({ children }) {
 
 
             console.log(
-                "🛒 CART AFTER MULTIPLE REMOVE:",
+                "🔴 CART AFTER REMOVE:",
                 updatedCart
             );
 
@@ -486,25 +528,18 @@ export function CartProvider({ children }) {
         amount = 1
     ) => {
 
-        const quantityToIncrease =
-            Number(amount);
-
         const validAmount =
-            Number.isFinite(quantityToIncrease) &&
-            quantityToIncrease > 0
-                ? Math.floor(quantityToIncrease)
+            Number(amount) > 0
+                ? Math.floor(Number(amount))
                 : 1;
 
 
-        setCart(prevCart =>
-            prevCart.map(item => {
+        setCart(currentCart => {
 
-                const id =
-                    getProductId(item);
-
+            return currentCart.map(item => {
 
                 if (
-                    String(id) ===
+                    getProductId(item) ===
                     String(productId)
                 ) {
 
@@ -519,11 +554,11 @@ export function CartProvider({ children }) {
 
                 }
 
-
                 return item;
 
-            })
-        );
+            });
+
+        });
 
     };
 
@@ -537,28 +572,20 @@ export function CartProvider({ children }) {
         amount = 1
     ) => {
 
-        const quantityToDecrease =
-            Number(amount);
-
         const validAmount =
-            Number.isFinite(quantityToDecrease) &&
-            quantityToDecrease > 0
-                ? Math.floor(quantityToDecrease)
+            Number(amount) > 0
+                ? Math.floor(Number(amount))
                 : 1;
 
 
-        setCart(prevCart =>
+        setCart(currentCart => {
 
-            prevCart
+            return currentCart
 
                 .map(item => {
 
-                    const id =
-                        getProductId(item);
-
-
                     if (
-                        String(id) ===
+                        getProductId(item) ===
                         String(productId)
                     ) {
 
@@ -573,7 +600,6 @@ export function CartProvider({ children }) {
 
                     }
 
-
                     return item;
 
                 })
@@ -583,9 +609,24 @@ export function CartProvider({ children }) {
                         Number(
                             item.quantity || 0
                         ) > 0
-                )
+                );
 
+        });
+
+    };
+
+
+    // ==========================================
+    // CLEAR CART
+    // ==========================================
+
+    const clearCart = () => {
+
+        console.log(
+            "🗑️ CLEAR CART"
         );
+
+        setCart([]);
 
     };
 
@@ -639,9 +680,9 @@ export function CartProvider({ children }) {
 
                 decreaseQuantity,
 
-                cartTotal,
+                clearCart,
 
-                clearCart
+                cartTotal
 
             }}
         >
