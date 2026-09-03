@@ -516,7 +516,9 @@ function Assistant() {
                 "ADDING PRODUCT:",
                 product,
                 "ID:",
-                product._id || product.id
+                product._id,
+                 "id:",
+                product.id
             );
 
             addToCart(
