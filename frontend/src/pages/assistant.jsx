@@ -20,7 +20,9 @@ function Assistant() {
     const {
         cart,
         addToCart,
+        addMultipleToCart,
         removeFromCart,
+        removeMultipleFromCart,
         clearCart,
         increaseQuantity,
         decreaseQuantity
@@ -493,40 +495,22 @@ function Assistant() {
                 return;
             }
 
-            if (data.action === "add_multiple_to_cart") {
-
-    console.log(
-        "MULTIPLE CART RESPONSE:",
-        data
-    );
-
-    console.log(
-        "PRODUCTS TO ADD:",
-        data.products
-    );
+          if (data.action === "add_multiple_to_cart") {
 
     if (
         Array.isArray(data.products) &&
         data.products.length > 0
     ) {
 
-        data.products.forEach(product => {
+        console.log(
+            "ADDING MULTIPLE PRODUCTS:",
+            data.products
+        );
 
-            console.log(
-                "ADDING PRODUCT:",
-                product,
-                "ID:",
-                product._id,
-                 "id:",
-                product.id
-            );
 
-            addToCart(
-                product,
-                1
-            );
-
-        });
+        addMultipleToCart(
+            data.products
+        );
 
 
         setMessages(prev => [
@@ -691,54 +675,58 @@ function Assistant() {
                 return;
             }
 
-            if (
-                data.action ===
-                "remove_multiple_from_cart"
-            ) {
+           if (
+    data.action ===
+    "remove_multiple_from_cart"
+) {
 
-                if (
-                    Array.isArray(data.products) &&
-                    data.products.length > 0
-                ) {
+    if (
+        Array.isArray(data.products) &&
+        data.products.length > 0
+    ) {
 
-                    data.products.forEach(product => {
-
-                        removeFromCart(
-                            product._id ||
-                            product.id
-                        );
-
-                    });
+        console.log(
+            "REMOVING MULTIPLE PRODUCTS:",
+            data.products
+        );
 
 
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            sender: "bot",
-                            text:
-                                `🗑️ ${data.response || "The selected products have been removed from your cart."}`
-                        }
-                    ]);
-
-                } else {
-
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            sender: "bot",
-                            text:
-                                data.response ||
-                                "I couldn't find those products in your cart."
-                        }
-                    ]);
-
-                }
+        removeMultipleFromCart(
+            data.products
+        );
 
 
-                setLoading(false);
-
-                return;
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "bot",
+                text:
+                    `🗑️ ${
+                        data.response ||
+                        "The selected products have been removed from your cart."
+                    }`
             }
+        ]);
+
+    } else {
+
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "bot",
+                text:
+                    data.response ||
+                    "I couldn't find those products in your cart."
+            }
+        ]);
+
+    }
+
+
+    setLoading(false);
+
+    return;
+}
             if (
                 data.action ===
                 "clear_cart"

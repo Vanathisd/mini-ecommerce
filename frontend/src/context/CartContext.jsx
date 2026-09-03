@@ -237,6 +237,101 @@ export function CartProvider({ children }) {
 
     };
 
+    const addMultipleToCart = (
+    products
+) => {
+
+    if (
+        !Array.isArray(products) ||
+        products.length === 0
+    ) {
+        return;
+    }
+
+
+    setCart(currentCart => {
+
+        let updatedCart = [...currentCart];
+
+
+        products.forEach(product => {
+
+            if (!product) {
+                return;
+            }
+
+
+            const productId =
+                getProductId(product);
+
+
+            if (!productId) {
+
+                console.error(
+                    "Product ID missing:",
+                    product
+                );
+
+                return;
+
+            }
+
+
+            const existingIndex =
+                updatedCart.findIndex(
+                    item =>
+                        getProductId(item) ===
+                        productId
+                );
+
+
+            if (existingIndex !== -1) {
+
+                updatedCart =
+                    updatedCart.map(
+                        (item, index) => {
+
+                            if (
+                                index ===
+                                existingIndex
+                            ) {
+
+                                return {
+                                    ...item,
+                                    quantity:
+                                        Number(
+                                            item.quantity ||
+                                            0
+                                        ) + 1
+                                };
+
+                            }
+
+                            return item;
+
+                        }
+                    );
+
+            } else {
+
+                updatedCart.push({
+
+                    ...product,
+
+                    quantity: 1
+
+                });
+
+            }
+
+        });
+
+
+        return updatedCart;
+
+    });
+
+};
 
 
     const clearCart = () => {
@@ -271,6 +366,40 @@ export function CartProvider({ children }) {
 
     };
 
+    const removeMultipleFromCart = (products) => {
+
+    if (
+        !Array.isArray(products) ||
+        products.length === 0
+    ) {
+        return;
+    }
+
+
+    const productIds = products
+        .map(product => getProductId(product))
+        .filter(Boolean);
+
+
+    if (productIds.length === 0) {
+        return;
+    }
+
+
+    setCart(currentCart => {
+
+        return currentCart.filter(item => {
+
+            const itemId =
+                getProductId(item);
+
+            return !productIds.includes(itemId);
+
+        });
+
+    });
+
+};
 
     const increaseQuantity = (
     productId,
@@ -426,7 +555,11 @@ const decreaseQuantity = (
 
                 addToCart,
 
+                addMultipleToCart,
+
                 removeFromCart,
+
+                removeMultipleFromCart,
 
                 increaseQuantity,
 
