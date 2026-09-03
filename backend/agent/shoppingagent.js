@@ -162,6 +162,33 @@ Do not invent products.`
 
         }
 
+        const showOrdersRequest =
+    isShowOrdersRequest(
+        cleanMessage
+    );
+
+console.log(
+    "SHOW ORDERS:",
+    showOrdersRequest
+);
+
+if (showOrdersRequest) {
+
+    console.log(
+        "SHOW ORDERS REQUEST DETECTED"
+    );
+
+    return {
+
+        response:
+            "Sure! I'll show you your orders.",
+
+        action:
+            "show_orders"
+
+    };
+
+}
 
 
         const decreaseCartRequest =
@@ -2433,6 +2460,41 @@ function isCheckoutRequest(
 
 }
 
+function isShowOrdersRequest(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLowerCase()
+            .trim();
+
+    const patterns = [
+
+        /\bshow\s+(my\s+)?orders?\b/i,
+
+        /\bview\s+(my\s+)?orders?\b/i,
+
+        /\bsee\s+(my\s+)?orders?\b/i,
+
+        /\bcheck\s+(my\s+)?orders?\b/i,
+
+        /\bdisplay\s+(my\s+)?orders?\b/i,
+
+        /\bmy\s+orders?\b/i,
+
+        /\border\s+history\b/i,
+
+        /\bshow\s+order\s+history\b/i
+
+    ];
+
+    return patterns.some(
+        pattern =>
+            pattern.test(text)
+    );
+
+}
 
 function isRemoveFromCartRequest(
     message
