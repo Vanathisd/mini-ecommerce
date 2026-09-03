@@ -8,7 +8,7 @@ import {
     FaTrash
 } from "react-icons/fa";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 import { useCart } from "../context/CartContext";
 
 function Assistant() {
@@ -493,6 +493,52 @@ function Assistant() {
                 return;
             }
 
+            if (data.action === "add_multiple_to_cart") {
+
+                if (
+                    Array.isArray(data.products) &&
+                    data.products.length > 0
+                ) {
+
+                    data.products.forEach(product => {
+
+                        addToCart(
+                            product,
+                            1
+                        );
+
+                    });
+
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                `🛒 ${data.response || "The products have been added to your cart."}`
+                        }
+                    ]);
+
+                } else {
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't add those products to your cart."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
+
+                return;
+            }
+
             if (
                 data.action ===
                 "increase_quantity"
@@ -502,7 +548,8 @@ function Assistant() {
 
                     increaseQuantity(
                         data.product._id ||
-                        data.product.id
+                        data.product.id,
+                        data.quantity
                     );
 
 
@@ -545,7 +592,8 @@ function Assistant() {
 
                     decreaseQuantity(
                         data.product._id ||
-                        data.product.id
+                        data.product.id,
+                        data.quantity
                     );
 
 
@@ -621,7 +669,54 @@ function Assistant() {
                 return;
             }
 
+            if (
+                data.action ===
+                "remove_multiple_from_cart"
+            ) {
 
+                if (
+                    Array.isArray(data.products) &&
+                    data.products.length > 0
+                ) {
+
+                    data.products.forEach(product => {
+
+                        removeFromCart(
+                            product._id ||
+                            product.id
+                        );
+
+                    });
+
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                `🗑️ ${data.response || "The selected products have been removed from your cart."}`
+                        }
+                    ]);
+
+                } else {
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            sender: "bot",
+                            text:
+                                data.response ||
+                                "I couldn't find those products in your cart."
+                        }
+                    ]);
+
+                }
+
+
+                setLoading(false);
+
+                return;
+            }
             if (
                 data.action ===
                 "clear_cart"
