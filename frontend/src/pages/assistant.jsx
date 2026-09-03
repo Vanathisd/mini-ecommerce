@@ -495,49 +495,69 @@ function Assistant() {
 
             if (data.action === "add_multiple_to_cart") {
 
-                if (
-                    Array.isArray(data.products) &&
-                    data.products.length > 0
-                ) {
+    console.log(
+        "MULTIPLE CART RESPONSE:",
+        data
+    );
 
-                    data.products.forEach(product => {
+    console.log(
+        "PRODUCTS TO ADD:",
+        data.products
+    );
 
-                        addToCart(
-                            product,
-                            1
-                        );
+    if (
+        Array.isArray(data.products) &&
+        data.products.length > 0
+    ) {
 
-                    });
+        data.products.forEach(product => {
 
+            console.log(
+                "ADDING PRODUCT:",
+                product,
+                "ID:",
+                product._id || product.id
+            );
 
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            sender: "bot",
-                            text:
-                                `🛒 ${data.response || "The products have been added to your cart."}`
-                        }
-                    ]);
+            addToCart(
+                product,
+                1
+            );
 
-                } else {
-
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            sender: "bot",
-                            text:
-                                data.response ||
-                                "I couldn't add those products to your cart."
-                        }
-                    ]);
-
-                }
+        });
 
 
-                setLoading(false);
-
-                return;
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "bot",
+                text:
+                    `🛒 ${
+                        data.response ||
+                        "The products have been added to your cart."
+                    }`
             }
+        ]);
+
+    } else {
+
+        setMessages(prev => [
+            ...prev,
+            {
+                sender: "bot",
+                text:
+                    data.response ||
+                    "I couldn't add those products to your cart."
+            }
+        ]);
+
+    }
+
+
+    setLoading(false);
+
+    return;
+}
 
             if (
                 data.action ===
