@@ -463,7 +463,8 @@ function Assistant() {
                 if (data.product) {
 
                     addToCart(
-                        data.product
+                        data.product,
+                        data.quantity 
                     );
 
 
@@ -676,10 +677,16 @@ function Assistant() {
                 return;
             }
 
-           if (
+            if (
     data.action ===
     "remove_multiple_from_cart"
 ) {
+
+    console.log(
+        "🗑️ REMOVE MULTIPLE ACTION RECEIVED:",
+        data
+    );
+
 
     if (
         Array.isArray(data.products) &&
@@ -687,7 +694,7 @@ function Assistant() {
     ) {
 
         console.log(
-            "REMOVING MULTIPLE PRODUCTS:",
+            "🗑️ PRODUCTS BEING SENT TO CART:",
             data.products
         );
 
@@ -728,6 +735,7 @@ function Assistant() {
 
     return;
 }
+
             if (
                 data.action ===
                 "clear_cart"
